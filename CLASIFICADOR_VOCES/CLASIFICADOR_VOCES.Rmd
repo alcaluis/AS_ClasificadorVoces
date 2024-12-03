@@ -1,0 +1,107 @@
+---
+title: Proyecto de Clasificación de Voces de Personas
+author:
+  - name: Luis Albacete Caballero
+    email: alcaluis@alumni.uv.es
+    affiliation: UV
+  - name: Julio García Bustos
+    email: bob@example.com
+    affiliation: UV
+  - name: Gabriel Ivars Asensio
+    email: bob@example.com
+    affiliation: UV
+  - name: Noé López García
+    email: bob@example.com
+    affiliation: UV
+  - name: José Miguel Palazón Caballero
+    email: bob@example.com
+    affiliation: UV
+  - name: Joan Pedro Bruixola
+    email: jopebrui@alumni.uv.es
+    affiliation: UV
+address:
+  - code: UV
+    organization: Universitat de València
+    addressline: Avinguda de l'Universitat
+    city: Burjassot
+    state: Valencia
+    postcode: 46100
+    country: España
+abstract: |
+  Esto es un ejemplo de texto en la sección "Abstract".
+keywords: 
+  - Voces
+  - Características
+  - Características de la voz
+  - Clasificación
+  - Aprendizaje Máquina
+  - Análisis de Señales
+  - Identificación voces
+date: "`r Sys.Date()`"
+linenumbers: false
+numbersections: true
+output: 
+  rticles::elsevier_article:
+    keep_tex: true
+    citation_package: natbib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      #warning=FALSE,
+                      out.width = "80%",
+                      fig.align = "center")
+
+# Cargar librerías
+librerias <- c("tuneR"    # Lectura de archivos WAV
+              )
+pacman::p_load(char = librerias)
+
+# Cargar datos
+w <- readWave("../Data/whatstheweatherlike.wav") # Audio ejemplo
+
+# Cargar utilidades
+source("../Utils/extraccion_caracteristicas.R")
+```
+
+```{r limpieza_audios}
+# WIP
+# 1. Eliminación ruido
+# 2. Normalización
+# 3. Metadatos
+```
+
+# Característica de la voz
+
+## Característica 1
+
+```{r extraccion_caract_1}
+# WIP
+ste1 <- STE(w, w@samp.rate * 0.01, 50)
+```
+
+## Característica 2
+
+```{r extraccion_caract_2}
+# WIP
+```
+
+## Característica N
+
+```{r extraccion_caract_n}
+# WIP
+```
+
+# Algoritmos de ML
+
+## Clustering
+
+```{r algoritmos_clustering}
+# WIP
+```
+
+## Clasificación
+
+```{r algoritmos_clasificacion}
+# WIP
+```

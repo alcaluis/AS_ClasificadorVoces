@@ -5,7 +5,7 @@ author:
     email: alcaluis@alumni.uv.es
     affiliation: UV
   - name: Julio García Bustos
-    email: bob@example.com
+    email: jugarbus@alumni.uv.es
     affiliation: UV
   - name: Gabriel Ivars Asensio
     email: bob@example.com
@@ -54,7 +54,8 @@ knitr::opts_chunk$set(echo = TRUE,
                       fig.align = "center")
 
 # Cargar librerías
-librerias <- c("tuneR"    # Lectura de archivos WAV
+librerias <- c("tuneR",    # Lectura de archivos WAV
+               "seewave"   # Manipulación mediante wavelets
               )
 pacman::p_load(char = librerias)
 
@@ -64,14 +65,19 @@ source("../Utils/carga_datos.R")
 ```
 
 ```{r limpieza_audios}
-# Cargar datos
+# Cargar datos + Metadatos
 # w <- readWave("../Data/whatstheweatherlike.wav") # Audio ejemplo
 carga <- carga_audios("../Data/Audios/")
+audios <- carga[[1]]
+meta_audios <- carga[[2]]
 
-# WIP
+library(wavelets)
+
 # 1. Eliminación ruido
+audios <- limpieza_ruido(audios)
+
 # 2. Normalización
-# 3. Metadatos
+audios <- normalizacion(audios)
 ```
 
 # Característica de la voz

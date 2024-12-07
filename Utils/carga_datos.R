@@ -7,8 +7,9 @@ carga_audios <- function(path) {
   genero <- c()
   pista <- c()
   locutor <- c()
+  id_audio <- c()
+  id = 1
   for (p_audio in p_audios) {
-    cat("Audio:", p_audio)
     # Metadata
     f_audio <- strsplit(p_audio, "/")[[1]][4]
     f_audio <- gsub(".wav", "", f_audio)
@@ -19,22 +20,58 @@ carga_audios <- function(path) {
     
     # Leer audio
     audios <- append(audios, readWave(p_audio))
+    id_audio <- append(id_audio, id)
+    id = id + 1
   }
-  metadata <- data.frame(genero, pista, locutor)
-  return(c(audios, metadata))
+  metadata <- data.frame(genero, pista, locutor, p_audios, id_audio)
+  return(list(audios, metadata))
 }
 
-normalizacion <- function(audios) {
-  audios_normalizados <- c()
-  # WIP
-  # Duracion
-  # Amplitud
-  return(audios_normalizados)
+normalizacion <- function(audios, duracion=10, norm_amplitud=TRUE) {
+  # Partiendo de que todas las frecuencias de muestreo son
+  # iguales.
+  for (id_audio in 1:length(audios)) {
+    # Normalizar duracion
+    nueva_len <- audios[[id_audio]]@samp.rate * duracion
+    audios[[id_audio]]@left <- audios[[id_audio]]@left[1:nueva_len]
+    audios[[id_audio]]@right <- audios[[id_audio]]@right[1:nueva_len]
+    
+    # Normalizar amplitud
+    if (!norm_amplitud) {
+      next
+    }
+    
+    # Se asume canal MONO
+    min_amp <- min(audios[[id_audio]]@left)
+    max_amp <- max(audios[[id_audio]]@left)
+    audios[[id_audio]]@left <- 2 * (audios[[id_audio]]@left - min_amp) /
+                                   (max_amp - min_amp) - 1
+    audios[[id_audio]]@right <- 2 * (audios[[id_audio]]@right - min_amp) /
+                                    (max_amp - min_amp) - 1
+    
+  }
+  
+  return(audios)
 }
 
-limpieza_ruido <- function(audios) {
-  audios_s_ruido <- c()
+limpieza_ruido <- function(audios, niveles = 3) {
   # WIP
-  return(audios_s_ruido)
+  library(wavelets)
+  
+  for (id_audio in 1:length(audios)) {
+    dwt_sn <- dwt(as.numeric(audios[[id_audio]]@left),
+                  n.levels = niveles)
+    for (id in 1:niveles) {
+      dwt_sn@W[[id]] <- matrix(0,
+                               nrow = nrow(dwt_sn@W[[id]]),
+                               ncol = ncol(dwt_sn@W[[id]]))
+    }
+
+    idwt_sn <- idwt(dwt_sn)
+    audios[[id_audio]]@left <- as.integer(idwt_sn)
+    audios[[id_audio]]@right <- as.integer(idwt_sn)
+  }
+  
+  return(audios)
 }
 

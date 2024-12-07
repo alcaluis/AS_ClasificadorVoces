@@ -47,6 +47,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
+rm(list=ls())
 knitr::opts_chunk$set(echo = TRUE,
                       #warning=FALSE,
                       out.width = "80%",
@@ -57,14 +58,16 @@ librerias <- c("tuneR"    # Lectura de archivos WAV
               )
 pacman::p_load(char = librerias)
 
-# Cargar datos
-w <- readWave("../Data/whatstheweatherlike.wav") # Audio ejemplo
-
 # Cargar utilidades
 source("../Utils/extraccion_caracteristicas.R")
+source("../Utils/carga_datos.R")
 ```
 
 ```{r limpieza_audios}
+# Cargar datos
+# w <- readWave("../Data/whatstheweatherlike.wav") # Audio ejemplo
+carga <- carga_audios("../Data/Audios/")
+
 # WIP
 # 1. Eliminación ruido
 # 2. Normalización

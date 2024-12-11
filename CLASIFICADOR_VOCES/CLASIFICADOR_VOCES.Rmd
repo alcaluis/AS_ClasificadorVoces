@@ -78,20 +78,32 @@ audios <- limpieza_ruido(audios)
 
 # 2. Normalización
 audios <- normalizacion(audios)
+
+# 3. DataFrame características
+df_caract <- data.frame("id_audio" = meta_audios$id_audio)
 ```
 
 # Característica de la voz
 
+## Característica ejemplo
+
+```{r extraccion_caract_ejemplo}
+# WIP
+ste_c <- rep(0.0, length(audios))
+id <- 1
+
+for (audio in audios) {
+  ste_c[id] <- mean(STE(audio, audio@samp.rate * 0.02, 50)[,2])
+  id = id + 1
+}
+
+# Agregar caracteristica
+df_caract <- cbind(df_caract, ste_c)
+```
+
 ## Característica 1
 
 ```{r extraccion_caract_1}
-# WIP
-ste1 <- STE(w, w@samp.rate * 0.01, 50)
-```
-
-## Característica 2
-
-```{r extraccion_caract_2}
 # WIP
 ```
 

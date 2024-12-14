@@ -76,7 +76,7 @@ limpieza_ruido <- function(audios, niveles = 3) {
 }
 
 # Función para preprocesar señales de audio
-limpieza_señales <- function(audios) {
+limpieza_senales <- function(audios) {
 
   # Cargar la biblioteca necesaria
   library(signal)

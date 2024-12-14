@@ -74,7 +74,7 @@ meta_audios <- carga[[2]]
 library(wavelets)
 
 # 1. Eliminación ruido
-audios <- limpieza_ruido(audios)
+audios <- limpieza_senales(audios)
 
 # 2. Normalización
 audios <- normalizacion(audios)
@@ -126,3 +126,6 @@ df_caract <- cbind(df_caract, ste_c)
 ```{r algoritmos_clasificacion}
 # WIP
 ```
+
+
+

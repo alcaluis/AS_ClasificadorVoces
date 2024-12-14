@@ -75,3 +75,42 @@ limpieza_ruido <- function(audios, niveles = 3) {
   return(audios)
 }
 
+# Función para preprocesar señales de audio
+limpieza_señales <- function(audios) {
+
+  # Cargar la biblioteca necesaria
+  library(signal)
+  
+  # Inicializar lista de resultados
+  audios_filtrados <- list()
+  
+  for (id_audio in 1:length(audios)) {
+    # Validar que el elemento es un objeto Wave
+    audio <- audios[[id_audio]]
+
+    
+    # Sacamos la frecuencia de muestreo y las señales
+    fs <- audio@samp.rate
+    signal_left <- audio@left
+    signal_right <- audio@right
+    
+    # Corregimos la línea base
+    signal_left_DC <- signal_left - mean(signal_left)
+    signal_right_DC <- signal_right - mean(signal_right)
+    
+    # Diseño del filtro
+    nyquist <- fs / 2
+    filtro <- butter(4, c(60, 400) / nyquist, type = "pass")  # Orden 4, pasa banda
+    
+    # Aplicar el filtro a las señales
+    signal_left_filtered <- filtfilt(filtro, signal_left_DC)
+    signal_right_filtered <- filtfilt(filtro, signal_right_DC)
+    
+    # Guardar el audio procesado
+    audio@left <- signal_left_filtered
+    audio@right <- signal_right_filtered
+    audios_filtrados[[id_audio]] <- audio
+  }
+  
+  return(audios_filtrados)
+}

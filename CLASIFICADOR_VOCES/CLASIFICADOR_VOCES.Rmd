@@ -228,7 +228,7 @@ ggplot(df, aes(x = ZCR_carac, fill = genero)) +
   ) +
   theme_minimal()
 ```
-
+En esta característica se observa un comportamiento más acorde con lo esperado teóricamente. El Zero Crossing Rate (ZCR) tiende a ser mayor en las mujeres que en los hombres, lo cual es consistente con las propiedades de las señales de voz. Este patrón se aprecia tanto en la distribución general del ZCR por género como en los locutores individuales, donde, por norma general, las mujeres presentan valores de ZCR superiores. Este resultado refleja que el ZCR es una característica adecuada para diferenciar géneros en nuestro caso de estudio
 ## Característica N
 
 ```{r extraccion_caract_n}

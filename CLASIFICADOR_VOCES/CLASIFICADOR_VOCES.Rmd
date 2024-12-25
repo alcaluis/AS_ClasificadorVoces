@@ -156,7 +156,7 @@ df_caract <- cbind(df_caract, mel_mat)
 
 Agruparemos los coeficientes para un análisis más conciso basandonos en el concepto del oído humano. Escalando poco a poco las agrupaciones. En la siguiente gráfica veremos los coeficientes entre hombres y mujeres para las 4 primeras pistas de audio.
 
-```{r}
+```{r analisis_mfcc}
 df_analisis_mel <- df_caract %>%
   left_join(meta_audios[c("genero", "pista", "id_audio")], by = "id_audio") %>%
   dplyr::filter(pista %in% paste0("0", c(1:4)))
@@ -196,7 +196,7 @@ Los formantes se encuentran caracterizados por aquellas intensidades en el espec
 
 De los formantes obtenidos hemos realizado la media por género. Por lo general, esperamos valores más altos para las mujeres. Cabe destacar que al haber recortado audios los fonemas de las vocales no son puros, además el tamaño de nuestra muestra es bastante reducido. Es por eso que no esperamos obtener resultados perfectos, en caso de querer comparar con otros estudios, pero sí pudiendo diferenciar. 
 
-```{r extraccion_caract_for_E}
+```{r extraccion_caract_for}
 # Vocal E
 carga <- carga_audios("../Data/vocal_e")
 vocales <- carga[[1]]
@@ -220,15 +220,7 @@ df_e <- df_e %>%
   group_by(genero) %>%
   summarise(f1 = round(mean(f1, na.rm=TRUE), 2),
             f2 = round(mean(f2, na.rm=TRUE), 2))
-knitr::kable(df_e, format = "latex", 
-             booktabs = TRUE, 
-             caption = "Media de los formantes en vocal E", 
-             align = 'lll', centering = TRUE,
-             table.envir = "table", position = "H")
-```
 
-
-```{r extraccion_caract_for_A}
 # Vocal A
 carga <- carga_audios("../Data/vocal_a")
 vocales <- carga[[1]]
@@ -250,12 +242,18 @@ df_a <- df_a %>%
   group_by(genero) %>%
   summarise(f1 = mean(f1, na.rm=TRUE),
             f2 = mean(f2, na.rm=TRUE))
-knitr::kable(df_a, format = "latex", 
+```
+```{r analisis_for}
+colnames(df_e) <- c("Genero", "F1 (vocal E)", "F2 (vocal E)")
+colnames(df_a) <- c("Genero", "F1 (vocal A)", "F2 (vocal A)")
+
+knitr::kable(cbind(df_a, df_e[-1]), format = "latex", 
              booktabs = TRUE, 
-             caption = "Media de los formantes en vocal A", 
+             caption = "Formantes en las vocales A y E", 
              align = 'lll', centering = TRUE,
              table.envir = "table", position = "H")
 ```
+
 
 A partir de los datos obtenidos, podemos diferenciar claramente el género del locutor. Para el caso de la vocal E, los formantes 1 y 2, para las mujeres son más altos. Sin embargo, si luego observamos en el caso de la vocal A, para el formante 1, tenemos valores muy similares, es solo en el formante 2 donde podemos diferenciar. Teniendo otra vez valores inferiores en los hombres.
 

@@ -1,5 +1,4 @@
 carga_audios <- function(path) {
-  library(tuneR)
   p_audios <- list.files(path = path, recursive=FALSE,
                          pattern = '\\.wav', full.names = TRUE)
 
@@ -55,9 +54,6 @@ normalizacion <- function(audios, duracion=10, norm_amplitud=TRUE) {
 }
 
 limpieza_ruido <- function(audios, niveles = 3) {
-  # WIP
-  library(wavelets)
-  
   for (id_audio in 1:length(audios)) {
     dwt_sn <- dwt(as.numeric(audios[[id_audio]]@left),
                   n.levels = niveles)
@@ -77,10 +73,6 @@ limpieza_ruido <- function(audios, niveles = 3) {
 
 # Función para preprocesar señales de audio
 limpieza_senales <- function(audios) {
-
-  # Cargar la biblioteca necesaria
-  library(signal)
-  
   # Inicializar lista de resultados
   audios_filtrados <- list()
   

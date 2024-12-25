@@ -28,7 +28,7 @@ address:
     postcode: 46100
     country: España
 abstract: |
-  Esto es un ejemplo de texto en la sección "Abstract".
+  La clasificación de voces de personas es un tema latente en el análisis de señales. Requiriendo extraer particularidades y características de la voz como señal. A lo largo de este trabajo obtendremos distintas características utilizando librerias o implementando nosotros la propia extracción de la característica. Bajo la finalidad de poder clasificar audios dependiendo del género del locutor.
 keywords: 
   - Voces
   - Características
@@ -46,18 +46,33 @@ output:
     citation_package: natbib
 ---
 
+# Captación de audio
+
+A fin de poder extraer las características de los audios, requerimos en primera instancia de los audios en sí. Para ello hemos captado 70 audios, grabados por 10 compañeros del Máster de Ciencia de Datos.
+
+Para agilizar las labores de preparación del contenido, los audios fueron grabados bajo las mismas condiciones, desde software y hardware de captación de audio como la sala de grabación e instrucciones para la grabación.
+
+Aprovechar para agredecer a todos los colaboradores su intervención.
+
 ```{r setup, include=FALSE}
 rm(list=ls())
-knitr::opts_chunk$set(echo = TRUE,
-                      #warning=FALSE,
+knitr::opts_chunk$set(#warning=FALSE,
                       out.width = "80%",
-                      fig.align = "center")
+                      fig.align = "center",
+                      echo = FALSE)
 
 # Cargar librerías
-librerias <- c("tuneR",    # Lectura de archivos WAV
-               "seewave"   # Manipulación mediante wavelets
+librerias <- c("tuneR",      # Lectura de archivos WAV
+               "seewave",    # Manipulación mediante wavelets
+               "plotly",     # Gráficos 3D
+               "phonTools",  # Libreria para obtención de Formants
+               "dplyr",      # Manipulacion de datos
+               "kableExtra", # Kable para ajutar las tablas
+               "wavelets",   # Libreria para manipulación con Wavelets
+               "signal",     # Funciones de procesado de señales
+               "ggpubr"      # Mostrart múltiples ggplots juntos
               )
-pacman::p_load(char = librerias)
+pacman::p_load(char = librerias, warn.conflicts=FALSE)
 
 # Cargar utilidades
 source("../Utils/extraccion_caracteristicas.R")
@@ -71,8 +86,6 @@ carga <- carga_audios("../Data/Audios/")
 audios <- carga[[1]]
 meta_audios <- carga[[2]]
 
-library(wavelets)
-
 # 1. Eliminación ruido
 audios <- limpieza_senales(audios)
 
@@ -84,6 +97,8 @@ df_caract <- data.frame("id_audio" = meta_audios$id_audio)
 ```
 
 # Característica de la voz
+
+En el desarrollo de este apartado probaremos distintas técnicas de extracción de características.
 
 ## Característica ejemplo
 
@@ -101,11 +116,148 @@ for (audio in audios) {
 df_caract <- cbind(df_caract, ste_c)
 ```
 
-## Característica 1
+## Mel Frecuency Cepstral Coefficients (MFCC)
 
-```{r extraccion_caract_1}
-# WIP
+Esta característica es una de las más comunes para reconocimiento de voces. Combina el análisis de cepstrums con una escala perceptual de las frecuencias.
+
+Los coeficientes de Mel se basan en la percepción humana utilizando una escala linealmente separada para los valores de la señal inferior a 1KHz y una logarítmica en caso de ser superior.
+
+El cálculo de los coeficientes se constituye de los siguientes pasos:
+
+1. **Pre-emphasis**. El primer paso consiste en pasar la señal por un filtro paso alto. En este se incrementará la energía de las altas frecuencias. Utilizando la siguiente fórmula: $y(n) = x(n) - a * x(n - 1)$ con valores de $a$ entre 0.9 y 1.
+2. **Frame blocking**. Consiste en la división de la señal en frames de entre 20 y 30 ms.
+3. **Windowing**. Seguidamente se aplica un efecto de "windowing" de manera que los bordes de la señal (frame) sean suavizados (más cercano a 0 en los extremos). La función de ventana que se utiliza es la de Hamming.
+4. **Discrete Fourier Transform**. Como deseamos recoger las energías en el dominio de las frecuencias debemos hacer un cambio de dominio mediante la DFT.
+5. **Mel-Filter**. Se suma las energías de las componentes espectrales por cada escala de Mel. Al resultado del filtrado se escalará logarítmicamente.
+5. **Discrete Cousine Transform**. Finalmente se aplicará la siguiente transformada: $C(n) = \sum Ek * cos(n * (k-0.5) * \pi / 40)$ para volver al dominio del tiempo. Obteniendo los coeficientes de Mel que recogen la energía total escalada por cada banda de frecuencia por cada intervalo.
+
+```{r extraccion_caract_mfcc, warning=FALSE}
+mel_coefs <- list()
+
+id <- 1
+for (audio in audios) {
+  # Calculo de coeficientes y media por cada audio
+  coefs <- colMeans(melfcc(audio,
+                           sr = audio@samp.rate,
+                           wintime = 0.02, usecmp = TRUE))
+  
+  # De los 12 coeficientes haremos agrupaciones:
+  mel_coefs[[id]] <- c(coefs[1], mean(coefs[2:3]),
+                       mean(coefs[4:6]), mean(coefs[7:12]))
+  id <- id + 1
+}
+
+mel_mat <- matrix(unlist(mel_coefs), byrow=TRUE, ncol=4)
+colnames(mel_mat) <- c("MEL_COE1", "MEL_COE2_3", "MEL_COE4_6",
+                       "MEL_COE7_12")
+
+df_caract <- cbind(df_caract, mel_mat)
 ```
+
+Agruparemos los coeficientes para un análisis más conciso basandonos en el concepto del oído humano. Escalando poco a poco las agrupaciones. En la siguiente gráfica veremos los coeficientes entre hombres y mujeres para las 4 primeras pistas de audio.
+
+```{r}
+df_analisis_mel <- df_caract %>%
+  left_join(meta_audios[c("genero", "pista", "id_audio")], by = "id_audio") %>%
+  dplyr::filter(pista %in% paste0("0", c(1:4)))
+
+p_coe1 <- ggplot(data = df_analisis_mel,
+                 mapping = aes(x = factor(pista), y = MEL_COE1, fill = genero)) +
+            geom_boxplot() +
+            ggtitle("Coeficiente(s) de Mel [1]") +
+            xlab("Pista audio") + ylab("Valor Coef. Mel")
+
+p_coe2 <- ggplot(data = df_analisis_mel,
+                 mapping = aes(x = factor(pista), y = MEL_COE2_3, fill = genero)) +
+            geom_boxplot() +
+            ggtitle("Coeficiente(s) de Mel [2:3]") +
+            xlab("Pista audio") + ylab("Valor Coef. Mel")
+
+p_coe3 <- ggplot(data = df_analisis_mel,
+                 mapping = aes(x = factor(pista), y = MEL_COE4_6, fill = genero)) +
+            geom_boxplot() +
+            ggtitle("Coeficiente(s) de Mel [4:6]") +
+            xlab("Pista audio") + ylab("Valor Coef. Mel")
+
+p_coe4 <- ggplot(data = df_analisis_mel,
+                 mapping = aes(x = factor(pista), y = MEL_COE7_12, fill = genero)) +
+            geom_boxplot() +
+            ggtitle("Coeficiente(s) de Mel [7:12]") +
+            xlab("Pista audio") + ylab("Valor Coef. Mel")
+
+ggarrange(p_coe1, p_coe2, p_coe3, p_coe4, ncol = 2, nrow = 2)
+```
+
+Empezando por el primer coeficiente podemos observar que el género femenino tiene los valores más altos y distribuidos. Para los coeficientes que van del segundo al sexto, podemos ver que los valores masculinos van ganando relevancia sobretodo en las pistas 2 y 3. Finalmente para los últimos coeficientes vemos que pasa justo lo contrario que para el primero, los valores para los hombres son claramente superiores y más distribuidos.
+
+## Formantes
+
+Los formantes se encuentran caracterizados por aquellas intensidades en el espectro de sonido que destacan en un señal. Altamente relacionado con el tracto vocal de la persona. En general, se suelen analizar fonemas no audios enteros mediante el uso de formantes. Es por eso que a continuación obtendremos los formantes a partir de los sonidos de las vocales "a" y "e", obtenidos recortando algunos de los audios grabados con el objetivo de investigar la característica.
+
+De los formantes obtenidos hemos realizado la media por género. Por lo general, esperamos valores más altos para las mujeres. Cabe destacar que al haber recortado audios los fonemas de las vocales no son puros, además el tamaño de nuestra muestra es bastante reducido. Es por eso que no esperamos obtener resultados perfectos, en caso de querer comparar con otros estudios, pero sí pudiendo diferenciar. 
+
+```{r extraccion_caract_for_E}
+# Vocal E
+carga <- carga_audios("../Data/vocal_e")
+vocales <- carga[[1]]
+gen <- c(rep("Femenino", 5), rep("Masculino", 5))
+f1_e <- numeric(length(vocales))
+f2_e <- numeric(length(vocales))
+id <- 1
+
+for (vocal in vocales) {
+  f <- findformants(vocal@left, fs=vocal@samp.rate, verify=FALSE)
+  fs <- f$formant[f$formant < 2500]
+  f1_e[id] <- fs[1]
+  f2_e[id] <- fs[2]
+  id <- id + 1
+}
+
+df_e <- data.frame(genero = gen,
+                   f1 = f1_e,
+                   f2 = f2_e)
+df_e <- df_e %>%
+  group_by(genero) %>%
+  summarise(f1 = round(mean(f1, na.rm=TRUE), 2),
+            f2 = round(mean(f2, na.rm=TRUE), 2))
+knitr::kable(df_e, format = "latex", 
+             booktabs = TRUE, 
+             caption = "Media de los formantes en vocal E", 
+             align = 'lll', centering = TRUE,
+             table.envir = "table", position = "H")
+```
+
+
+```{r extraccion_caract_for_A}
+# Vocal A
+carga <- carga_audios("../Data/vocal_a")
+vocales <- carga[[1]]
+f1_a <- numeric(length(vocales))
+f2_a <- numeric(length(vocales))
+id <- 1
+for (vocal in vocales) {
+  f <- findformants(vocal@left, fs=vocal@samp.rate, verify=FALSE)
+  fs <- f$formant[f$formant < 2000]
+  f1_a[id] <- fs[1]
+  f2_a[id] <- fs[2]
+  id <- id + 1
+}
+
+df_a <- data.frame(genero = gen,
+                   f1 = f1_a,
+                   f2 = f2_a)
+df_a <- df_a %>%
+  group_by(genero) %>%
+  summarise(f1 = mean(f1, na.rm=TRUE),
+            f2 = mean(f2, na.rm=TRUE))
+knitr::kable(df_a, format = "latex", 
+             booktabs = TRUE, 
+             caption = "Media de los formantes en vocal A", 
+             align = 'lll', centering = TRUE,
+             table.envir = "table", position = "H")
+```
+
+A partir de los datos obtenidos, podemos diferenciar claramente el género del locutor. Para el caso de la vocal E, los formantes 1 y 2, para las mujeres son más altos. Sin embargo, si luego observamos en el caso de la vocal A, para el formante 1, tenemos valores muy similares, es solo en el formante 2 donde podemos diferenciar. Teniendo otra vez valores inferiores en los hombres.
 
 ## Característica N
 
@@ -126,6 +278,3 @@ df_caract <- cbind(df_caract, ste_c)
 ```{r algoritmos_clasificacion}
 # WIP
 ```
-
-
-

@@ -159,7 +159,7 @@ Agruparemos los coeficientes para un análisis más conciso basandonos en el con
 ```{r analisis_mfcc}
 df_analisis_mel <- df_caract %>%
   left_join(meta_audios[c("genero", "pista", "id_audio")], by = "id_audio") %>%
-  dplyr::filter(pista %in% paste0("0", c(1:4)))
+  dplyr::filter(pista %in% paste0("0", c(1:3)))
 
 p_coe1 <- ggplot(data = df_analisis_mel,
                  mapping = aes(x = factor(pista), y = MEL_COE1, fill = genero)) +
@@ -192,11 +192,13 @@ Empezando por el primer coeficiente podemos observar que el género femenino tie
 
 ## Formantes
 
-Los formantes se encuentran caracterizados por aquellas intensidades en el espectro de sonido que destacan en un señal. Altamente relacionado con el tracto vocal de la persona. En general, se suelen analizar fonemas no audios enteros mediante el uso de formantes. Es por eso que a continuación obtendremos los formantes a partir de los sonidos de las vocales "a" y "e", obtenidos recortando algunos de los audios grabados con el objetivo de investigar la característica.
+Los formantes se encuentran caracterizados por aquellas intensidades en el espectro de sonido que destacan en un señal. Altamente relacionado con el tracto vocal de la persona, produciendo una gran cantidad de formantes. Siendo los más relevantes los primeros. En concreto los dos primeros relacionados con el sonido de las vocales. A partir del segundo formante, las frecuencias le dan color a nuestra voz, hasta el punto de tener frecuencias no distinguibles para el oído humano.
+
+Con el objetivo de una sencilla visualización, a continuación obtendremos los formantes a partir de los sonidos de las vocales "a" y "e". Tras haber recortado algunos de los audios grabados con el objetivo de investigar la característica.
 
 De los formantes obtenidos hemos realizado la media por género. Por lo general, esperamos valores más altos para las mujeres. Cabe destacar que al haber recortado audios los fonemas de las vocales no son puros, además el tamaño de nuestra muestra es bastante reducido. Es por eso que no esperamos obtener resultados perfectos, en caso de querer comparar con otros estudios, pero sí pudiendo diferenciar. 
 
-```{r extraccion_caract_for}
+```{r extraccion_caract_for_1}
 # Vocal E
 carga <- carga_audios("../Data/vocal_e")
 vocales <- carga[[1]]
@@ -243,7 +245,8 @@ df_a <- df_a %>%
   summarise(f1 = mean(f1, na.rm=TRUE),
             f2 = mean(f2, na.rm=TRUE))
 ```
-```{r analisis_for}
+
+```{r analisis_for_1}
 colnames(df_e) <- c("Genero", "F1 (vocal E)", "F2 (vocal E)")
 colnames(df_a) <- c("Genero", "F1 (vocal A)", "F2 (vocal A)")
 
@@ -254,8 +257,46 @@ knitr::kable(cbind(df_a, df_e[-1]), format = "latex",
              table.envir = "table", position = "H")
 ```
 
-
 A partir de los datos obtenidos, podemos diferenciar claramente el género del locutor. Para el caso de la vocal E, los formantes 1 y 2, para las mujeres son más altos. Sin embargo, si luego observamos en el caso de la vocal A, para el formante 1, tenemos valores muy similares, es solo en el formante 2 donde podemos diferenciar. Teniendo otra vez valores inferiores en los hombres.
+
+Debido al coste computacional implicado en el cálculo de formantes, hemos decidido precalcularlo utilizando la aplicación PRAAT. De esta manera hemos obtenido todos los formantes para cada audio. Teniendo en cuenta la complejidad que buscamos con nuestro clasificador, bajo el objetivo de clasificar el género del locutor, resumiremos los datos. En vez de utilizar los formantes en su total extensión en el tiempo calcularemos estadísticos, como la media y la desviación estándar para los 3 primeros formantes, en las partes habladas de los audios.
+
+```{r extraccion_caract_for_2}
+df_for <- carga_formants("../Data/formants_as.txt", audios)
+df_caract <- cbind(df_caract, df_for[-1])
+```
+
+Si analizamos los valores de los formantes obtenemos paradójicamente la inversa de lo esperado.
+
+```{r analisis_for_2}
+df_analisis_for <- df_caract %>%
+  left_join(meta_audios[c("genero", "pista", "id_audio")], by = "id_audio") %>%
+  dplyr::filter(pista %in% paste0("0", c(1:3)))
+
+p_for1 <- ggplot(data = df_analisis_for,
+                 mapping = aes(x = factor(pista), y = f1_avg, fill = genero)) +
+            geom_boxplot() +
+            ggtitle("Media del F1") +
+            xlab("Pista audio") + ylab("Valor frecuencia")
+
+p_for2 <- ggplot(data = df_analisis_for,
+                 mapping = aes(x = factor(pista), y = f2_avg, fill = genero)) +
+            geom_boxplot() +
+            ggtitle("Media del F2") +
+            xlab("Pista audio") + ylab("Valor frecuencia")
+
+p_for3 <- ggplot(data = df_analisis_for,
+                 mapping = aes(x = factor(pista), y = f3_avg, fill = genero)) +
+            geom_boxplot() +
+            ggtitle("Media del F3") +
+            xlab("Pista audio") + ylab("Valor frecuencia")
+
+ggarrange(p_for1,
+          ggarrange(p_for2, p_for3, ncol = 2),
+          nrow = 2)
+```
+
+
 
 ## Característica N
 

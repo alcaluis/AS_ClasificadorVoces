@@ -17,3 +17,32 @@ STE <- function(wave, wlen, ovlp = 0) {
   # NOTA: Devuelve normalizado
   return(cbind(time.frame, STE/max(STE)))
 }
+
+
+
+# PGM 
+
+
+# PS
+
+PS <- function(signal, sampling_rate, span=NULL) {
+  # Duración de la señal en tiempo
+  longitud_senal <- length(signal) / sampling_rate
+  
+  # Calcular el espectro de potencia usando la función spectrum
+if (is.null(span)) {
+  spec <- spectrum(signal, method = "pgram", log = "dB", plot = FALSE)
+} else {
+  spec <- spectrum(signal, method = "pgram", log = "dB", plot = FALSE, span = span)
+}  
+
+# Crear un data frame con las frecuencias y la potencia
+espectro_potencia <- data.frame(
+  Frecuencia = spec$freq * sampling_rate,
+  Potencia = spec$spec
+)
+  
+  return(espectro_potencia)
+}
+
+

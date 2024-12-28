@@ -183,6 +183,124 @@ En conclusión, los resultados sugieren que la Short-Time Energy es una métrica
 
 ## Característica 2
 
+
+El Linear Predictive Coding (LPC) es un modelo matemático que describe una señal de audio en función de una combinación lineal de sus valores pasados. En lugar de representar la señal de audio directamente, se modela como una secuencia de coeficientes que predicen el valor futuro de la señal basándose en los valores previos. Los coeficientes LPC son los parámetros que caracterizan este modelo de predicción lineal. En el contexto de la LPCC, los coeficientes son derivados a partir de los coeficientes LPC mediante una transformación matemática, y son usados frecuentemente como una representación compacta y eficiente de la información espectral de la señal.
+
+Para obtener los coeficientes LPCC seguiremos los siguientes pasos:
+
+1) Preprocesamiento de la señal: La señal de audio se segmenta en ventanas de corto tiempo (frames) para su análisis.
+
+2) Cálculo de los coeficientes LPC: A partir de cada segmento de la señal, se calcula un conjunto de coeficientes LPC (usaremos la función lpc). Estos coeficientes describen cómo la señal futura puede ser predicha a partir de los valores anteriores.
+
+3) Transformación a LPCC: Una vez obtenidos los coeficientes LPC, se aplican transformaciones matemáticas (como la transformada cepstral) para obtener los coeficientes LPCC. 
+
+```{r}
+
+# Parámetros
+frame_size <- 512  # Tamaño del frame
+overlap <- 128     # Solapamiento
+order <- 4        # Orden de LPC
+
+# Aplicar la función a todos los audios y calcular los LPCCs
+lpcc_results <- lapply(audios, function(wav) {
+  signal <- as.vector(wav@left)  # Convertir audio a vector (usando el canal 'left' para señales mono)
+  calc_lpcc(signal, frame_size, overlap, order)
+})
+
+
+```
+
+```{r}
+
+library(tidyr)
+
+# Usar 'lapply' para aplanar las listas dentro de 'lpcc_results'
+df_list <- lapply(1:length(lpcc_results), function(i) {
+  # Para cada audio, expandimos cada ventana y sus coeficientes LPCC
+  audio_lpcc <- lpcc_results[[i]]
+  # Convertir cada ventana (lista de 4 coeficientes) en un dataframe de 4 columnas
+  audio_df <- do.call(rbind, lapply(audio_lpcc, function(window) {
+    data.frame(lpcc_1 = window[1], lpcc_2 = window[2], lpcc_3 = window[3], lpcc_4 = window[4])
+  }))
+  
+  # Agregar una columna 'audio_id' para identificar el audio
+  audio_df$id_audio <- i
+  return(audio_df)
+})
+
+# Combinar todas las listas de dataframes en uno solo
+final_df <- do.call(rbind, df_list)
+
+df <- final_df %>%
+  left_join(meta_audios, by = "id_audio")  # Combinar los datos
+# Reordenar los niveles de los locutores
+df$locutor <- factor(df$locutor, levels = c("01", "02", "03", "05", "06","04" ,"07", "08", "09", "10"))
+ 
+
+```
+
+```{r}
+
+# Resumen descriptivo de los coeficientes LPCC por género
+library(dplyr)
+
+# Calcular estadísticas descriptivas por género
+summary_stats <-df %>%
+  group_by(genero) %>%
+  summarise(
+    lpcc_1_mean = mean(lpcc_1), lpcc_1_sd = sd(lpcc_1),
+    lpcc_2_mean = mean(lpcc_2), lpcc_2_sd = sd(lpcc_2),
+    lpcc_3_mean = mean(lpcc_3), lpcc_3_sd = sd(lpcc_3),
+    lpcc_4_mean = mean(lpcc_4), lpcc_4_sd = sd(lpcc_4)
+  )
+
+# Ver las estadísticas
+summary_stats
+
+
+```
+
+```{r}
+
+# Parámetros
+frame_size <- 512  # Tamaño del frame
+overlap <- 128     # Solapamiento
+order <- 8        # Orden de LPC
+
+remove_silence <- function(wav, threshold = 0.01) {
+  # Detectar los silencios basados en la amplitud
+  # Se considera silencio si la amplitud es menor que el umbral (threshold)
+  silent_part <- silence(wav, threshold = threshold)
+  
+  # Eliminar los segmentos con silencio
+  wav_no_silence <- cutw(wav, from = min(silent_part), to = max(silent_part), output = "Wave")
+  
+  return(wav_no_silence)
+}
+
+# Aplicar eliminación de silencios a cada audio
+audio_no_silence <- lapply(audios, remove_silence)
+
+# Aplicar la función a todos los audios y calcular los LPCCs
+lpcc_results <- lapply(audio_no_silence, function(wav) {
+  signal <- as.vector(wav@left)  # Convertir audio a vector (usando el canal 'left' para señales mono)
+  calc_lpcc(signal, frame_size, overlap, order)
+})
+
+# Crear un ID para cada audio
+audio_ids <- 1:length(audios)  # IDs de 1 a 70
+
+# Crear el dataframe
+lpcc_df <- data.frame(
+  audio_id = audio_ids,  # Columna con los IDs
+  lpcc_list = lpcc_results  # Columna con las listas de LPCCs
+)
+
+# Ver el dataframe resultante
+head(lpcc_df)
+
+```
+
 ```{r extraccion_caract_2}
 
 # Inicializar una lista o una matriz para almacenar los LPCCs de cada audio

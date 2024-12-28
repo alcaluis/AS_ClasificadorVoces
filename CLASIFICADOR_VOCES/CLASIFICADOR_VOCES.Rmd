@@ -104,8 +104,39 @@ df_caract <- cbind(df_caract, ste_c)
 ## Característica 1
 
 ```{r extraccion_caract_1}
-# WIP
+# PS
+# Inicializar el vector para la característica PS
+PS_carac <- rep(0.0, length(audios))
+
+# ID para iterar sobre los audios
+id <- 1
+
+for (audio in audios) {
+  # Acceso directo a los canales izquierdo y derecho
+  audio_iz <- audio@left
+  audio_de <- audio@right
+  
+  # Calcular PS para cada canal
+  PS_iz <- PS(audio_iz, audio@samp.rate, span=NULL)
+  PS_de <- PS(audio_de, audio@samp.rate, span=NULL)
+  
+  
+  # Incrementar el contador
+  id <- id + 1
+}
+
 ```
+
+
+```{r}
+audio_iz <- audios[[1]]@left
+audio_de <- audios[[1]]@right
+
+PS_iz <- PS(audio_iz, audio@samp.rate, span=NULL)
+PS_de <- PS(audio_de, audio@samp.rate, span=NULL)
+```
+
+
 
 ## Característica N
 

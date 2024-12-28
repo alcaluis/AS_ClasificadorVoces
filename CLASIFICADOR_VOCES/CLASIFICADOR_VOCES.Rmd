@@ -184,7 +184,7 @@ En conclusión, los resultados sugieren que la Short-Time Energy es una métrica
 ## Característica 2
 
 
-El Linear Predictive Coding (LPC) es un modelo matemático que describe una señal de audio en función de una combinación lineal de sus valores pasados. En lugar de representar la señal de audio directamente, se modela como una secuencia de coeficientes que predicen el valor futuro de la señal basándose en los valores previos. Los coeficientes LPC son los parámetros que caracterizan este modelo de predicción lineal. En el contexto de la LPCC, los coeficientes son derivados a partir de los coeficientes LPC mediante una transformación matemática, y son usados frecuentemente como una representación compacta y eficiente de la información espectral de la señal.
+El Linear Predictive Coding (LPC) es un modelo matemático que describe una señal de audio en función de una combinación lineal de sus valores pasados. En lugar de representar la señal de audio directamente, se modela como una secuencia de coeficientes que predicen el valor futuro de la señal basándose en los valores previos. Los coeficientes LPC son los parámetros que caracterizan este modelo de predicción lineal. En el contexto de la LPCC, los coeficientes son derivados a partir de los coeficientes LPC mediante una transformación matemática, y son usados frecuentemente como una representación compacta y eficiente de la información espectral de la señal. Nuestro objetivo es analizar si los coeficientes obtenidos para los áudios con locutores hombres tienen patrones distintos a los obtenidos para las locutoras.
 
 Para obtener los coeficientes LPCC seguiremos los siguientes pasos:
 
@@ -193,6 +193,8 @@ Para obtener los coeficientes LPCC seguiremos los siguientes pasos:
 2) Cálculo de los coeficientes LPC: A partir de cada segmento de la señal, se calcula un conjunto de coeficientes LPC (usaremos la función lpc). Estos coeficientes describen cómo la señal futura puede ser predicha a partir de los valores anteriores.
 
 3) Transformación a LPCC: Una vez obtenidos los coeficientes LPC, se aplican transformaciones matemáticas (como la transformada cepstral) para obtener los coeficientes LPCC. 
+
+Calcularemos los coeficientes para cada ventana de cada áudio con la función "calc_lpcc", que aplica los pasos anteriores para obtenerlos. Usaremos orden 4, lo que significa que obtendremos 4 coeficientes por ventana.
 
 ```{r}
 
@@ -210,11 +212,11 @@ lpcc_results <- lapply(audios, function(wav) {
 
 ```
 
+
 ```{r}
 
 library(tidyr)
 
-# Usar 'lapply' para aplanar las listas dentro de 'lpcc_results'
 df_list <- lapply(1:length(lpcc_results), function(i) {
   # Para cada audio, expandimos cada ventana y sus coeficientes LPCC
   audio_lpcc <- lpcc_results[[i]]
@@ -231,7 +233,7 @@ df_list <- lapply(1:length(lpcc_results), function(i) {
 # Combinar todas las listas de dataframes en uno solo
 final_df <- do.call(rbind, df_list)
 
-df <- final_df %>%
+df_totales <- final_df %>%
   left_join(meta_audios, by = "id_audio")  # Combinar los datos
 # Reordenar los niveles de los locutores
 df$locutor <- factor(df$locutor, levels = c("01", "02", "03", "05", "06","04" ,"07", "08", "09", "10"))
@@ -239,14 +241,12 @@ df$locutor <- factor(df$locutor, levels = c("01", "02", "03", "05", "06","04" ,"
 
 ```
 
+El siguiente DataFrame guarda la media y la desviación estándar de los coeficientes obtenidos para cada audio.
+
 ```{r}
 
-# Resumen descriptivo de los coeficientes LPCC por género
-library(dplyr)
-
-# Calcular estadísticas descriptivas por género
-summary_stats <-df %>%
-  group_by(genero) %>%
+  df <- df_totales %>%
+  group_by(id_audio,genero,pista,locutor) %>%
   summarise(
     lpcc_1_mean = mean(lpcc_1), lpcc_1_sd = sd(lpcc_1),
     lpcc_2_mean = mean(lpcc_2), lpcc_2_sd = sd(lpcc_2),
@@ -254,141 +254,47 @@ summary_stats <-df %>%
     lpcc_4_mean = mean(lpcc_4), lpcc_4_sd = sd(lpcc_4)
   )
 
+# Ver el dataframe resultante
+head(df)
+
+
+```
+
+A continuación, analizaremos si es posible identificar patrones en los coeficientes que permitan discernir el género del locutor.
+
+Vamos a filtrar por la pista de áudio y veremos si se aprecian diferencias entre la media y la desviación estándar en función del género del locutor. 
+
+```{r}
+
+# Resumen descriptivo de los coeficientes LPCC por género
+library(dplyr)
+
+# Calcular estadísticas descriptivas por género
+summary_stats <-df_totales %>%
+  filter(pista=='02') %>%
+  group_by(genero) %>%
+  summarise(
+    lpcc_1_mean = mean(lpcc_1), lpcc_1_sd = sd(lpcc_1),
+    lpcc_2_mean = mean(lpcc_2), lpcc_2_sd = sd(lpcc_2),
+    lpcc_3_mean = mean(lpcc_3), lpcc_3_sd = sd(lpcc_3),
+    lpcc_4_mean = mean(lpcc_4), lpcc_4_sd = sd(lpcc_4),
+  )
+
 # Ver las estadísticas
 summary_stats
 
-
-```
-
-```{r}
-
-# Parámetros
-frame_size <- 512  # Tamaño del frame
-overlap <- 128     # Solapamiento
-order <- 8        # Orden de LPC
-
-remove_silence <- function(wav, threshold = 0.01) {
-  # Detectar los silencios basados en la amplitud
-  # Se considera silencio si la amplitud es menor que el umbral (threshold)
-  silent_part <- silence(wav, threshold = threshold)
-  
-  # Eliminar los segmentos con silencio
-  wav_no_silence <- cutw(wav, from = min(silent_part), to = max(silent_part), output = "Wave")
-  
-  return(wav_no_silence)
-}
-
-# Aplicar eliminación de silencios a cada audio
-audio_no_silence <- lapply(audios, remove_silence)
-
-# Aplicar la función a todos los audios y calcular los LPCCs
-lpcc_results <- lapply(audio_no_silence, function(wav) {
-  signal <- as.vector(wav@left)  # Convertir audio a vector (usando el canal 'left' para señales mono)
-  calc_lpcc(signal, frame_size, overlap, order)
-})
-
-# Crear un ID para cada audio
-audio_ids <- 1:length(audios)  # IDs de 1 a 70
-
-# Crear el dataframe
-lpcc_df <- data.frame(
-  audio_id = audio_ids,  # Columna con los IDs
-  lpcc_list = lpcc_results  # Columna con las listas de LPCCs
-)
-
-# Ver el dataframe resultante
-head(lpcc_df)
-
-```
-
-```{r extraccion_caract_2}
-
-# Inicializar una lista o una matriz para almacenar los LPCCs de cada audio
-lpcc_resultados <- matrix(0, nrow = length(audios), ncol = 4)  # 4 coeficientes LPCC por audio
-
-id <- 1
-for (audio in audios) {
-  # Calcular los LPCC para el audio actual
-  # lpcc_result <- LPCC2(audio, wlen = audio@samp.rate * 0.02, order = 4)
-  # Prueba con una ventana más grande, por ejemplo, 0.1 segundos
-  lpcc_result <- LPCC2(audio, wlen = audio@samp.rate * 0.1, order = 4)
-
-  
-  # Obtener el primer LPCC calculado (puedes ajustar este índice si quieres algo diferente)
-  lpcc_resultados[id, ] <- lpcc_result  # Suponiendo que cada resultado de LPCC2 es una lista
-  
-  id <- id + 1
-}
-
-# Guardar los LPCCs de todos los audios en df_caract
-df_caract <- cbind(df_caract, lpcc_resultados)
-
-
-```
-
-```{r}
-
-
-lpcc_c <- rep(0.0, length(audios))  
-id <- 1
-
-for (audio in audios) {
-  
-  lpcc_features <- LPCC(audio, audio@samp.rate * 0.02, order = 4)  
-  
-  # Para simplificar, vamos a calcular el promedio de los coeficientes LPCC para cada audio
-  lpcc_c[id] <- mean(unlist(lpcc_features))  # Unimos la lista de LPCC y calculamos el promedio
-  id <- id + 1
-}
-
-df_caract <- cbind(df_caract, lpcc_c)  # Añadir la nueva característica al dataframe
-
-
-```
-
-```{r}
-df <- df_caract %>%
-  left_join(meta_audios, by = "id_audio")  # Combinar los datos
-# Reordenar los niveles de los locutores
-df$locutor <- factor(df$locutor, levels = c("01", "02", "03", "05", "06","04" ,"07", "08", "09", "10"))
- 
-
-```
-
-```{r}
-
-ggplot(df, aes(x = locutor, y = ste_c, color = genero)) +
-  geom_point(size = 3, alpha = 0.8) +  # Puntos
-  geom_boxplot(aes(group = genero), alpha = 0.3) +  # Boxplots por género
-  labs(
-    title = "Short-Time Energy (STE) por Locutor y Género",
-    x = "Locutor",
-    y = "Short-Time Energy (STE)",
-    color = "Género"
-  ) +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-
-
-
 ```
 
 
 
-```{r}
+Notamos que ciertos patrones se repiten para todas las pistas de áudio. La media de los coeficientes 2 y 4 correspondientes a los chicos es mayor que la de las chicas en todas las pistas, mientras que con el coeficiente 3 pasa al contrario. También podemos destacar que la desviación estándar de los coeficientes es en todos los casos superior para los locutores chicos que para las chicas. 
 
-ggplot(df, aes(x = ste_c, fill = genero)) +
-  geom_density(alpha = 0.5) +  # Curvas de densidad
-  labs(
-    title = "Distribución de STE por Género",
-    x = "Short-Time Energy (STE)",
-    y = "Densidad",
-    fill = "Género"
-  ) +
-  theme_minimal()
 
-```
+
+
+
+
+
 
 ## Característica N
 

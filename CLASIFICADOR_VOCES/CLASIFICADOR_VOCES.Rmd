@@ -236,7 +236,7 @@ final_df <- do.call(rbind, df_list)
 df_totales <- final_df %>%
   left_join(meta_audios, by = "id_audio")  # Combinar los datos
 # Reordenar los niveles de los locutores
-df$locutor <- factor(df$locutor, levels = c("01", "02", "03", "05", "06","04" ,"07", "08", "09", "10"))
+df_totales$locutor <- factor(df_totales$locutor, levels = c("01", "02", "03", "05", "06","04" ,"07", "08", "09", "10"))
  
 
 ```
@@ -285,9 +285,88 @@ summary_stats
 
 ```
 
+```{r}
+
+# Suponiendo que tu dataframe se llama df_coefs
+knitr::kable(summary_stats, format = "latex", 
+             booktabs = TRUE, 
+             caption = "Media y desviación estándar de los coeficientes LPCC por género", 
+             align = 'ccccccccc',  # Ajusta según el número de columnas
+             centering = TRUE,
+             table.envir = "table", position = "H")
+
+
+```
+
+
+
+```{r}
+
+# Resumen descriptivo de los coeficientes LPCC por género
+library(dplyr)
+
+# Calcular estadísticas descriptivas por género
+summary_stats <-df_totales %>%
+  filter(pista=='03') %>%
+  group_by(genero) %>%
+  summarise(
+    lpcc_1_mean = mean(lpcc_1), lpcc_1_sd = sd(lpcc_1),
+    lpcc_2_mean = mean(lpcc_2), lpcc_2_sd = sd(lpcc_2),
+    lpcc_3_mean = mean(lpcc_3), lpcc_3_sd = sd(lpcc_3),
+    lpcc_4_mean = mean(lpcc_4), lpcc_4_sd = sd(lpcc_4),
+  )
+
+# Ver las estadísticas
+summary_stats
+
+# Suponiendo que tu dataframe se llama df_coefs
+knitr::kable(summary_stats, format = "latex", 
+             booktabs = TRUE, 
+             caption = "Media y desviación estándar de los coeficientes LPCC por género", 
+             align = 'ccccccccc',  # Ajusta según el número de columnas
+             centering = TRUE,
+             table.envir = "table", position = "H")
+
+
+```
+
+
+
+```{r}
+
+# Resumen descriptivo de los coeficientes LPCC por género
+library(dplyr)
+
+# Calcular estadísticas descriptivas por género
+summary_stats <-df_totales %>%
+  filter(pista=='05') %>%
+  group_by(genero) %>%
+  summarise(
+    lpcc_1_mean = mean(lpcc_1), lpcc_1_sd = sd(lpcc_1),
+    lpcc_2_mean = mean(lpcc_2), lpcc_2_sd = sd(lpcc_2),
+    lpcc_3_mean = mean(lpcc_3), lpcc_3_sd = sd(lpcc_3),
+    lpcc_4_mean = mean(lpcc_4), lpcc_4_sd = sd(lpcc_4),
+  )
+
+# Ver las estadísticas
+summary_stats
+
+# Suponiendo que tu dataframe se llama df_coefs
+knitr::kable(summary_stats, format = "latex", 
+             booktabs = TRUE, 
+             caption = "Media y desviación estándar de los coeficientes LPCC por género", 
+             align = 'ccccccccc',  # Ajusta según el número de columnas
+             centering = TRUE,
+             table.envir = "table", position = "H")
+
+
+```
 
 
 Notamos que ciertos patrones se repiten para todas las pistas de áudio. La media de los coeficientes 2 y 4 correspondientes a los chicos es mayor que la de las chicas en todas las pistas, mientras que con el coeficiente 3 pasa al contrario. También podemos destacar que la desviación estándar de los coeficientes es en todos los casos superior para los locutores chicos que para las chicas. 
+
+
+
 
 
 

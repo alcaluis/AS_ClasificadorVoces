@@ -105,6 +105,16 @@ df_caract <- cbind(df_caract, ste_c)
 
 ```{r extraccion_caract_1}
 # WIP
+ste_c <- rep(0.0, length(audios))
+id <- 1
+
+for (audio in audios) {
+  ste_c[id] <- mean(STE(audio, audio@samp.rate * 0.02, 50)[,2])
+  id = id + 1
+}
+
+# Agregar caracteristica
+df_caract <- cbind(df_caract, ste_c)
 ```
 
 ## Característica N

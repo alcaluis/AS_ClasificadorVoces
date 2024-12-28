@@ -182,9 +182,9 @@ ggplot(df, aes(x = MaxPotencia , fill = genero)) +
 ggplot(df, aes(x = FrecuenciaMaxPotencia, y = MaxPotencia, color = genero, shape = genero)) +
   geom_point(size = 3) +
   labs(
-    x = "Frecuencia Máxima de Potencia (Hz)",
+    x = "Frecuencia asociada a máxima potencia (Hz)",
     y = "Máxima Potencia (dB)",
-    title = "Nube de Puntos de Frecuencia Máxima de Potencia vs Máxima Potencia por Género",
+    title = "Nube de Puntos",
     color = "Género",
     shape = "Género"
   ) +

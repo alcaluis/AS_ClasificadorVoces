@@ -38,7 +38,7 @@ LPCC <- function(wave, wlen, order, ovlp = 0) {
     frame <- wave@left[start_idx:end_idx]
     
     # Calcular los LPC
-    lpc_coeffs <- lpc(frame, order = order)$a  # Coeficientes LPC
+    lpc_coeffs <- lpc(frame, order = order)  # Coeficientes LPC
     
     # Transformar LPC a LPCC
     lpcc <- numeric(order)
@@ -58,5 +58,53 @@ LPCC <- function(wave, wlen, order, ovlp = 0) {
   }
   
   return(LPCC_features)
+}
+
+
+LPCC2 <- function(wave, wlen, order, ovlp = 0) {
+  
+  N <- length(wave@left)          
+  step <- wlen - (ovlp * wlen / 100) 
+  indices <- seq(1, N - wlen, by = step) 
+  m <- length(indices)           
+  
+  LPCC_features <- list()        
+  
+  # Inicializar un vector para acumular los LPCCs promedio
+  lpcc_promedio <- numeric(order)  # 12 LPCCs por ventana
+  
+  for (i in 1:m) {
+    # Seleccionar ventana de audio
+    start_idx <- indices[i]
+    end_idx <- min(start_idx + wlen - 1, N)
+    frame <- wave@left[start_idx:end_idx]
+    
+    # Calcular los LPC
+    lpc_coeffs <- lpc(frame, order = order)  # Coeficientes LPC
+    
+    # Transformar LPC a LPCC
+    lpcc <- numeric(order)
+    for (n in 1:order) {
+      if (n <= length(lpc_coeffs)) {
+        lpcc[n] <- lpc_coeffs[n]
+      }
+      if (n > length(lpc_coeffs)) {
+        lpcc[n] <- 0
+        for (k in 1:(n - 1)) {
+          lpcc[n] <- lpcc[n] + (k / n) * lpcc[k] * lpc_coeffs[n - k]
+        }
+      }
+    }
+    
+    # Acumular los LPCCs de esta ventana para calcular el promedio
+    LPCC_features[[i]] <- lpcc  # Guardar LPCC de esta ventana
+    lpcc_promedio <- lpcc_promedio + lpcc  # Sumar al promedio
+  }
+  
+  # Calcular el promedio de LPCCs de todas las ventanas
+  lpcc_promedio <- lpcc_promedio / m
+  
+  # Devolver tanto los LPCCs de cada ventana como el promedio
+  return(lpcc_promedio)
 }
 

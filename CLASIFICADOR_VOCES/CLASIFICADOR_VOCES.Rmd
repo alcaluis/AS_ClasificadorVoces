@@ -145,9 +145,120 @@ ggplot(df, aes(x = locutor, y = ste_c, color = genero)) +
 
 ```
 
+```{r}
+
+ggplot(df, aes(x = ste_c, fill = genero)) +
+  geom_density(alpha = 0.5) +  # Curvas de densidad
+  labs(
+    title = "Distribución de STE por Género",
+    x = "Short-Time Energy (STE)",
+    y = "Densidad",
+    fill = "Género"
+  ) +
+  theme_minimal()
+
+```
 
 
 
+
+
+
+
+
+
+
+
+## Característica 2
+
+```{r extraccion_caract_2}
+
+# Inicializar una lista o una matriz para almacenar los LPCCs de cada audio
+lpcc_resultados <- matrix(0, nrow = length(audios), ncol = 4)  # 4 coeficientes LPCC por audio
+
+id <- 1
+for (audio in audios) {
+  # Calcular los LPCC para el audio actual
+  # lpcc_result <- LPCC2(audio, wlen = audio@samp.rate * 0.02, order = 4)
+  # Prueba con una ventana más grande, por ejemplo, 0.1 segundos
+  lpcc_result <- LPCC2(audio, wlen = audio@samp.rate * 0.1, order = 4)
+
+  
+  # Obtener el primer LPCC calculado (puedes ajustar este índice si quieres algo diferente)
+  lpcc_resultados[id, ] <- lpcc_result  # Suponiendo que cada resultado de LPCC2 es una lista
+  
+  id <- id + 1
+}
+
+# Guardar los LPCCs de todos los audios en df_caract
+df_caract <- cbind(df_caract, lpcc_resultados)
+
+
+```
+
+```{r}
+
+
+lpcc_c <- rep(0.0, length(audios))  
+id <- 1
+
+for (audio in audios) {
+  
+  lpcc_features <- LPCC(audio, audio@samp.rate * 0.02, order = 4)  
+  
+  # Para simplificar, vamos a calcular el promedio de los coeficientes LPCC para cada audio
+  lpcc_c[id] <- mean(unlist(lpcc_features))  # Unimos la lista de LPCC y calculamos el promedio
+  id <- id + 1
+}
+
+df_caract <- cbind(df_caract, lpcc_c)  # Añadir la nueva característica al dataframe
+
+
+```
+
+```{r}
+df <- df_caract %>%
+  left_join(meta_audios, by = "id_audio")  # Combinar los datos
+# Reordenar los niveles de los locutores
+df$locutor <- factor(df$locutor, levels = c("01", "02", "03", "05", "06","04" ,"07", "08", "09", "10"))
+ 
+
+```
+
+```{r}
+
+ggplot(df, aes(x = locutor, y = ste_c, color = genero)) +
+  geom_point(size = 3, alpha = 0.8) +  # Puntos
+  geom_boxplot(aes(group = genero), alpha = 0.3) +  # Boxplots por género
+  labs(
+    title = "Short-Time Energy (STE) por Locutor y Género",
+    x = "Locutor",
+    y = "Short-Time Energy (STE)",
+    color = "Género"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+
+
+```
+
+
+
+```{r}
+
+ggplot(df, aes(x = ste_c, fill = genero)) +
+  geom_density(alpha = 0.5) +  # Curvas de densidad
+  labs(
+    title = "Distribución de STE por Género",
+    x = "Short-Time Energy (STE)",
+    y = "Densidad",
+    fill = "Género"
+  ) +
+  theme_minimal()
+
+```
 
 ## Característica N
 

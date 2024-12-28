@@ -105,36 +105,94 @@ df_caract <- cbind(df_caract, ste_c)
 
 ```{r extraccion_caract_1}
 # PS
-# Inicializar el vector para la característica PS
-PS_carac <- rep(0.0, length(audios))
+
+# Inicializar listas para almacenar los resultados
+max_potencias <- numeric(length(audios))
+freq_max_potencias <- numeric(length(audios))
 
 # ID para iterar sobre los audios
 id <- 1
 
 for (audio in audios) {
   # Acceso directo a los canales izquierdo y derecho
-  audio_iz <- audio@left
-  audio_de <- audio@right
+  audio_left <- audio@left
+
+  # Calcular PS para canal izquierdo
+  PS_left <- PS(audio_left, audio@samp.rate, span=NULL) #Se puede modificar el span
   
-  # Calcular PS para cada canal
-  PS_iz <- PS(audio_iz, audio@samp.rate, span=NULL)
-  PS_de <- PS(audio_de, audio@samp.rate, span=NULL)
-  
+
+  # Almacenar los resultados en las listas
+  max_potencias[id] <- max(PS_left$Potencia)
+  freq_max_potencias[id] <- PS_left$Frecuencia[which.max(PS_left$Potencia)]
   
   # Incrementar el contador
   id <- id + 1
 }
 
+# Crear un data frame con los resultados
+PS_caract <- data.frame(
+  MaxPotencia = max_potencias,
+  FrecuenciaMaxPotencia = freq_max_potencias
+)
+
+# Agregar la característica FO al marco de datos
+df_caract <- cbind(df_caract, PS_caract)
+
 ```
 
 
 ```{r}
-audio_iz <- audios[[1]]@left
-audio_de <- audios[[1]]@right
-
-PS_iz <- PS(audio_iz, audio@samp.rate, span=NULL)
-PS_de <- PS(audio_de, audio@samp.rate, span=NULL)
+df <- df_caract %>%
+  left_join(meta_audios, by = "id_audio")  # Combinar los datos
+# Reordenar los niveles de los locutores
+df$locutor <- factor(df$locutor, levels = c("01", "02", "03", "05", "06","04" ,"07", "08", "09", "10"))
 ```
+
+
+```{r}
+ggplot(df, aes(x = FrecuenciaMaxPotencia, fill = genero)) +
+  geom_density(alpha = 0.5) +  # Curvas de densidad
+  labs(
+    title = "Distribución de frecuencia asociada a potencia máxima por Género",
+    x = "Frecuencia Fundamental (F0)",
+    y = "Densidad",
+    fill = "Género"
+  ) +
+  theme_minimal()
+
+```
+
+```{r}
+ggplot(df, aes(x = MaxPotencia , fill = genero)) +
+  geom_density(alpha = 0.5) +  # Curvas de densidad
+  labs(
+    title = "Distribución de frecuencia asociada a potencia máxima por Género",
+    x = "Potencia máxima",
+    y = "Densidad",
+    fill = "Género"
+  ) +
+  theme_minimal()
+
+```
+
+
+
+```{r}
+# Crear la nube de puntos
+ggplot(df, aes(x = FrecuenciaMaxPotencia, y = MaxPotencia, color = genero, shape = genero)) +
+  geom_point(size = 3) +
+  labs(
+    x = "Frecuencia Máxima de Potencia (Hz)",
+    y = "Máxima Potencia (dB)",
+    title = "Nube de Puntos de Frecuencia Máxima de Potencia vs Máxima Potencia por Género",
+    color = "Género",
+    shape = "Género"
+  ) +
+  theme_minimal()
+```
+
+
+
 
 
 

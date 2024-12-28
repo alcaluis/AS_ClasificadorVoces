@@ -33,7 +33,7 @@ PS <- function(signal, sampling_rate, span=NULL) {
 if (is.null(span)) {
   spec <- spectrum(signal, method = "pgram", log = "dB", plot = FALSE)
 } else {
-  spec <- spectrum(signal, method = "pgram", log = "dB", plot = FALSE, span = span)
+  spec <- spectrum(signal, method = "pgram", log = "dB", plot = FALSE, spans = span)
 }  
 
 # Crear un data frame con las frecuencias y la potencia

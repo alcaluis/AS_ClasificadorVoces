@@ -103,6 +103,12 @@ df_caract <- cbind(df_caract, ste_c)
 
 ## Característica 1
 
+A continuación, vamos a extraer la Short-Time Energy (STE) de cada uno de nuestros audios y analizaremos las diferencias para cada locutor y cada género. La Short-Time Energy (STE) mide la energía contenida en una señal dentro de pequeñas ventanas temporales. Puede ser muy útil para analizar variaciones de energía a lo largo del tiempo. Para nuestro caso, puede ser particularmente interesante porque las variaciones de energía a lo largo del tiempo pueden reflejar características importantes de la voz humana, como la intensidad, los patrones de habla y las pausas.
+
+
+El procedimiento que hemos seguido consiste en tomar cada señal (audio) y dividirla en ventanas temporales. Luego, calculamos la energía cuadrática media para cada ventana y la normalizamos. Finalmente, promediamos los valores de STE normalizados obtenidos en cada áudio para obtener un único valor representativo por audio.
+
+
 ```{r extraccion_caract_1}
 # WIP
 ste_c <- rep(0.0, length(audios))
@@ -145,6 +151,10 @@ ggplot(df, aes(x = locutor, y = ste_c, color = genero)) +
 
 ```
 
+Observamos que las locutoras tienen una mayor variabilidad en la STE en comparación con los locutores hombres. Esto podría deberse a características propias de las voces femeninas, como el rango de modulación, que es más amplio. Además, las locutoras presentan valores de STE más altos en general. Esto se refleja en una mediana de aproximadamente 0.10, mientras que en los locutores hombres la mediana se encuentra alrededor de 0.07. Esto puede tener relación con la frecuencia fundamental. Las voces femeninas suelen tener una frecuencia fundamental más alta que las voces masculinas. Dado que la STE mide la energía de la señal acústica, una frecuencia fundamental más alta puede generar más energía en las frecuencias superiores, lo que puede reflejarse en un valor más alto de STE.
+
+
+
 ```{r}
 
 ggplot(df, aes(x = ste_c, fill = genero)) +
@@ -160,7 +170,9 @@ ggplot(df, aes(x = ste_c, fill = genero)) +
 ```
 
 
+Las curvas de densidad muestran que las voces femeninas tienen una distribución más amplia y desplazada hacia valores más altos de STE, lo que confirma lo que hemos visto en el boxplot. Los locutores hombres, por otro lado, presentan una distribución más concentrada y con menor dispersión. Aunque hay diferencias entre géneros, también se observa cierto solapamiento en las densidades de STE. Esto indica que, si bien hay tendencias generales, la STE por sí sola puede no ser completamente discriminativa entre géneros en todos los casos.
 
+En conclusión, los resultados sugieren que la Short-Time Energy es una métrica que capta diferencias significativas entre géneros, aunque también está influenciada por características individuales.
 
 
 

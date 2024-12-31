@@ -55,7 +55,10 @@ knitr::opts_chunk$set(echo = TRUE,
 
 # Cargar librerías
 librerias <- c("tuneR",    # Lectura de archivos WAV
-               "seewave"   # Manipulación mediante wavelets
+               "seewave", # Manipulación mediante wavelets
+               "ggplot2",
+               "dplyr",
+               "lomb"
               )
 pacman::p_load(char = librerias)
 
@@ -101,9 +104,26 @@ for (audio in audios) {
 df_caract <- cbind(df_caract, ste_c)
 ```
 
-## Característica 1
 
-```{r extraccion_caract_1}
+## Característica 3
+
+
+```{r}
+n <- length(audios[[1]])
+fm <- audios[[1]]@samp.rate
+Tm <- 1/fm
+
+duracion <- n*Tm
+
+# 200ms
+```
+
+
+
+
+## Característica 4
+
+```{r extraccion_caract_4}
 # PS
 
 # Inicializar listas para almacenar los resultados
@@ -137,7 +157,6 @@ PS_caract <- data.frame(
 
 # Agregar la característica FO al marco de datos
 df_caract <- cbind(df_caract, PS_caract)
-
 ```
 
 
@@ -161,6 +180,10 @@ ggplot(df, aes(x = FrecuenciaMaxPotencia, fill = genero)) +
   theme_minimal()
 
 ```
+
+
+Se observa en el caso de las voces femeninas que la densidad de frecuencias  
+
 
 ```{r}
 ggplot(df, aes(x = MaxPotencia , fill = genero)) +
@@ -192,15 +215,9 @@ ggplot(df, aes(x = FrecuenciaMaxPotencia, y = MaxPotencia, color = genero, shape
 ```
 
 
+Periodograma: Es una técnica para estimar la PSD. Calcula la potencia de la señal en función de la frecuencia.
+Densidad Espectral de Potencia (PSD): Es la potencia por unidad de frecuencia. El periodograma es una forma de estimar esta densidad.
 
-
-
-
-## Característica N
-
-```{r extraccion_caract_n}
-# WIP
-```
 
 # Algoritmos de ML
 

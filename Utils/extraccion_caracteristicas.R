@@ -22,6 +22,26 @@ STE <- function(wave, wlen, ovlp = 0) {
 
 # PGM 
 
+PGM <- function(signal, sampling_rate, window_size=100 , overlap=0) {
+  # Duración de la señal en tiempo
+  longitud_senal <- length(signal) / sampling_rate
+  # Número de ventanas
+  num_ventanas <- round(longitud_senal / window_size)
+  
+  # Dividir la señal en ventanas
+  windows <- sliding.window(signal, wl = window_size, ovlp = overlap)
+  
+  # Calcular las características gaussianas para cada ventana
+  features <- apply(windows, 2, function(window) {
+    mean_val <- mean(window)
+    std_val <- sd(window)
+    c(mean_val, std_val)
+  })
+  
+  return(t(features))
+}
+
+
 
 # PS
 
@@ -30,19 +50,18 @@ PS <- function(signal, sampling_rate, span=NULL) {
   longitud_senal <- length(signal) / sampling_rate
   
   # Calcular el espectro de potencia usando la función spectrum
-if (is.null(span)) {
-  spec <- spectrum(signal, method = "pgram", log = "dB", plot = FALSE)
-} else {
-  spec <- spectrum(signal, method = "pgram", log = "dB", plot = FALSE, spans = span)
-}  
-
-# Crear un data frame con las frecuencias y la potencia
-espectro_potencia <- data.frame(
-  Frecuencia = spec$freq * sampling_rate,
-  Potencia = spec$spec
-)
+  if (is.null(span)) {
+    spec <- spectrum(signal, method = "pgram", log = "dB", plot = FALSE)
+  } else {
+    spec <- spectrum(signal, method = "pgram", log = "dB", plot = FALSE, spans = span)
+  }  
+  
+  # Crear un data frame con las frecuencias y la potencia
+  espectro_potencia <- data.frame(
+    Frecuencia = spec$freq * sampling_rate,
+    Potencia = spec$spec
+  )
   
   return(espectro_potencia)
 }
-
 

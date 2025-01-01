@@ -88,37 +88,95 @@ df_caract <- data.frame("id_audio" = meta_audios$id_audio)
 
 # Característica de la voz
 
-## Característica ejemplo
 
-```{r extraccion_caract_ejemplo}
-# WIP
-ste_c <- rep(0.0, length(audios))
-id <- 1
-
-for (audio in audios) {
-  ste_c[id] <- mean(STE(audio, audio@samp.rate * 0.02, 50)[,2])
-  id = id + 1
-}
-
-# Agregar caracteristica
-df_caract <- cbind(df_caract, ste_c)
-```
 
 
 ## Característica 3
 
 
-```{r}
-n <- length(audios[[1]])
-fm <- audios[[1]]@samp.rate
-Tm <- 1/fm
+```{r extraccion_caract_4, warning=FALSE}
+# PGM
 
-duracion <- n*Tm
+# Inicializar listas para almacenar los resultados
+mean_charac <- numeric(length(audios))
+var_charac <- numeric(length(audios))
 
-# 200ms
+# ID para iterar sobre los audios
+id <- 1
+
+for (audio in audios) {
+
+  PGM_left <- PGM(audio) 
+  
+
+  # Almacenar los resultados en las listas
+  mean_charac[id] <- mean(PGM_left$medias)
+  var_charac[id] <- mean(PGM_left$varianzas)
+  
+  # Incrementar el contador
+  id <- id + 1
+}
+
+# Crear un data frame con los resultados
+PGM_caract <- data.frame(
+  media_carac = mean_charac,
+  var_carac = var_charac
+)
+
+# Agregar la característica FO al marco de datos
+df_caract <- cbind(df_caract, PGM_caract)
 ```
 
 
+```{r}
+df <- df_caract %>%
+  left_join(meta_audios, by = "id_audio")  # Combinar los datos
+# Reordenar los niveles de los locutores
+df$locutor <- factor(df$locutor, levels = c("01", "02", "03", "05", "06","04" ,"07", "08", "09", "10"))
+```
+
+
+```{r}
+ggplot(df, aes(x = media_carac, fill = genero)) +
+  geom_density(alpha = 0.5) +  # Curvas de densidad
+  labs(
+    title = "Distribución de frecuencia asociada a vectores de medias por Género",
+    x = "Medias normalizadas",
+    y = "Densidad",
+    fill = "Género"
+  ) +
+  theme_minimal()
+
+```
+
+
+```{r}
+ggplot(df, aes(x = var_carac , fill = genero)) +
+  geom_density(alpha = 0.5) +  # Curvas de densidad
+  labs(
+    title = "Distribución de frecuencia asociada a vectores de varianzas por Género",
+    x = "Varianzas normalizadas",
+    y = "Densidad",
+    fill = "Género"
+  ) +
+  theme_minimal()
+
+```
+
+
+```{r}
+# Crear la nube de puntos
+ggplot(df, aes(x = media_carac, y = var_charac, color = genero, shape = genero)) +
+  geom_point(size = 3) +
+  labs(
+    x = "Medias normalizadas",
+    y = "Varianzas normalizadas",
+    title = "Nube de Puntos",
+    color = "Género",
+    shape = "Género"
+  ) +
+  theme_minimal()
+```
 
 
 ## Característica 4
@@ -138,7 +196,7 @@ for (audio in audios) {
   audio_left <- audio@left
 
   # Calcular PS para canal izquierdo
-  PS_left <- PS(audio_left, audio@samp.rate, span=NULL) #Se puede modificar el span
+  PS_left <- PS(audio_left, audio@samp.rate, span=9) #Se puede modificar el span
   
 
   # Almacenar los resultados en las listas
@@ -159,13 +217,12 @@ PS_caract <- data.frame(
 df_caract <- cbind(df_caract, PS_caract)
 ```
 
-
 ```{r}
 df <- df_caract %>%
-  left_join(meta_audios, by = "id_audio")  # Combinar los datos
-# Reordenar los niveles de los locutores
-df$locutor <- factor(df$locutor, levels = c("01", "02", "03", "05", "06","04" ,"07", "08", "09", "10"))
+  left_join(df, by = "id_audio") 
 ```
+
+
 
 
 ```{r}
@@ -182,7 +239,6 @@ ggplot(df, aes(x = FrecuenciaMaxPotencia, fill = genero)) +
 ```
 
 
-Se observa en el caso de las voces femeninas que la densidad de frecuencias  
 
 
 ```{r}
@@ -206,7 +262,7 @@ ggplot(df, aes(x = FrecuenciaMaxPotencia, y = MaxPotencia, color = genero, shape
   geom_point(size = 3) +
   labs(
     x = "Frecuencia asociada a máxima potencia (Hz)",
-    y = "Máxima Potencia (dB)",
+    y = "Máxima Potencia",
     title = "Nube de Puntos",
     color = "Género",
     shape = "Género"
@@ -215,8 +271,12 @@ ggplot(df, aes(x = FrecuenciaMaxPotencia, y = MaxPotencia, color = genero, shape
 ```
 
 
-Periodograma: Es una técnica para estimar la PSD. Calcula la potencia de la señal en función de la frecuencia.
-Densidad Espectral de Potencia (PSD): Es la potencia por unidad de frecuencia. El periodograma es una forma de estimar esta densidad.
+
+
+
+
+
+
 
 
 # Algoritmos de ML

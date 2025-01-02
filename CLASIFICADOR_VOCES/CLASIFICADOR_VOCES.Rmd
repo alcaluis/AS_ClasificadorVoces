@@ -109,9 +109,114 @@ df_caract <- cbind(df_caract, ste_c)
 
 ## Característica N
 
-```{r extraccion_caract_n}
-# WIP
+```{r}
+SH <- function(signal){
+  
+  shimmer <- 20*log10(sum(abs(diff(signal))/abs(signal[-length(signal)]))/(length(signal)-1))
+  
+  return(shimmer)
+}
 ```
+
+
+```{r}
+# SH - 
+# Inicializar el vector para la característica ZCR
+SH_carac <- rep(0.0, length(audios))
+
+# ID para iterar sobre los audios
+id <- 1
+
+audios_sin_normalizar <- carga[[1]]
+
+# 1. Eliminación ruido
+audios_sin_normalizar <- limpieza_senales(audios_sin_normalizar)
+
+for (audio in audios_sin_normalizar) {
+  # Acceso directo a los canales izquierdo y derecho
+  audio_iz <- audio@left
+  audio_de <- audio@right
+  
+  # Calcular FO para cada canal
+  SH_iz <- SH2(audio_iz)
+  SH_de <-SH2(audio_de)
+  
+  # Promediar los valores calculados
+  SH_carac[id] <- mean(c(SH_iz, SH_de))
+  # Incrementar el contador
+  id <- id + 1
+}
+
+#Normalizados
+SH_carac_norm <- rep(0.0, length(audios))
+
+for (audio in audios) {
+  # Acceso directo a los canales izquierdo y derecho
+  audio_iz <- audio@left
+  audio_de <- audio@right
+  
+  # Calcular FO para cada canal
+  SH_iz <- SH2(audio_iz)
+  SH_de <-SH2(audio_de)
+  
+  # Promediar los valores calculados
+  SH_carac_norm[id] <- mean(c(SH_iz, SH_de))
+  # Incrementar el contador
+  id <- id + 1
+}
+
+# Agregar la característica ZCR al marco de datos
+df_caract <- cbind(df_caract, SH_carac)
+df_caract <- cbind(df_caract, SH_carac_norm)
+```
+
+```{r}
+df_caract
+```
+
+```{r}
+df <- df_caract %>%
+  left_join(meta_audios, by = "id_audio")  # Combinar los datos
+# Reordenar los niveles de los locutores
+df$locutor <- factor(df$locutor, levels = c("01", "02", "03", "05", "06","04" ,"07", "08", "09", "10"))
+ggplot(df, aes(x = SH_carac, fill = genero)) +
+  geom_density(alpha = 0.5) +  # Curvas de densidad
+  labs(
+    title = "Distribución de SH por Género",
+    x = "SH",
+    y = "Densidad",
+    fill = "Género"
+  ) +
+  theme_minimal
+
+ggplot(df, aes(x = SH_carac_norm, fill = genero)) +
+  geom_density(alpha = 0.5) +  # Curvas de densidad
+  labs(
+    title = "Distribución de SH por Género",
+    x = "SH",
+    y = "Densidad",
+    fill = "Género"
+  ) +
+  theme_minimal()
+
+
+```
+
+
+```{r}
+ggplot(df, aes(x = locutor, y = SH_carac, color = genero)) +
+  geom_point(size = 3, alpha = 0.8) +  # Puntos
+  geom_boxplot(aes(group = genero), alpha = 0.3, outlier.shape = NA) +  # Boxplots por género
+  labs(
+    title = "SH por Locutor y Género",
+    x = "Locutor",
+    y = "SH",
+    color = "Género"
+  )  +  
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+```
+
 
 # Algoritmos de ML
 

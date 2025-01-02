@@ -613,7 +613,7 @@ var_charac <- numeric(length(audios))
 
 # ID para iterar sobre los audios
 id <- 1
-for (audio in audios) {
+for (audio in audios_norm) {
   PGM_left <- PGM(audio, coef=40) 
   
   # Almacenar los resultados en las listas
@@ -693,7 +693,7 @@ freq_max_potencias <- numeric(length(audios))
 # ID para iterar sobre los audios
 id <- 1
 
-for (audio in audios) {
+for (audio in audios_norm) {
   # Acceso directo a los canales izquierdo y derecho
   audio_left <- audio@left
 

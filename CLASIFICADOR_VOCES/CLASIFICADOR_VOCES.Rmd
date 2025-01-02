@@ -141,7 +141,7 @@ colnames(mel_mat) <- c("MEL_COE1", "MEL_COE2_3", "MEL_COE4_6",
 df_caract <- cbind(df_caract, mel_mat)
 ```
 
-Agruparemos los coeficientes para un análisis más conciso basandonos en el concepto del oído humano. Escalando poco a poco las agrupaciones. En la siguiente gráfica veremos los coeficientes entre hombres y mujeres para las 4 primeras pistas de audio.
+Agruparemos los coeficientes para un análisis más conciso basandonos en el concepto del oído humano. Escalando poco a poco las agrupaciones. En la siguiente gráfica veremos los coeficientes entre hombres y mujeres para las 5 primeras pistas de audio.
 
 ```{r analisis_mfcc}
 df_analisis_mel <- df_caract %>%
@@ -175,7 +175,7 @@ p_coe4 <- ggplot(data = df_analisis_mel,
 ggarrange(p_coe1, p_coe2, p_coe3, p_coe4, ncol = 2, nrow = 2)
 ```
 
-Empezando por el primer coeficiente podemos observar que el género femenino tiene los valores más altos y distribuidos. Para los coeficientes que van del segundo al sexto, podemos ver que los valores masculinos van ganando relevancia sobretodo en las pistas 2 y 3. Finalmente para los últimos coeficientes vemos que pasa evoluciona hacia lo contrario que en el primer coeficiente. Los valores para los hombres son claramente superiores y más distribuidos.
+Empezando por el primer coeficiente podemos observar que el género masculino tiene los valores más altos y distribuidos. Para los coeficientes que van del segundo al sexto, podemos ver que los valores femeninos van ganando relevancia según aumentamos el coeficiente, es decir, según captamos mayores frecuencias. Finalmente para los últimos coeficientes vemos que pasa evoluciona hacia lo contrario que en el primer coeficiente. Los valores para los hombres son claramente inferiores y menos distribuidos.
 
 ## Frecuencia fundamental
 
@@ -252,7 +252,7 @@ Los formantes se encuentran caracterizados por aquellas intensidades en el espec
 
 Con el objetivo de una sencilla visualización, a continuación obtendremos los formantes a partir de los sonidos de las vocales "a" y "e". Tras haber recortado algunos de los audios grabados con el objetivo de investigar la característica.
 
-De los formantes obtenidos hemos realizado la media por género. Por lo general, esperamos valores más altos para las mujeres. Cabe destacar que al haber recortado audios los fonemas de las vocales no son puros, además el tamaño de nuestra muestra es bastante reducido. Es por eso que no esperamos obtener resultados perfectos, en caso de querer comparar con otros estudios, pero sí pudiendo diferenciar. 
+De los formantes obtenidos hemos realizado la media por género. Por lo general, esperamos valores más altos para las mujeres. Cabe destacar que al haber recortado manualmente los audios, los fonemas no son puros. Además el tamaño de nuestra muestra es bastante reducido. Es por eso que no esperamos obtener resultados perfectos, en caso de querer comparar con otros estudios, pero sí pudiendo diferenciar. 
 
 ```{r extraccion_caract_for_1}
 # Vocal E
@@ -324,7 +324,7 @@ df_for <- carga_formants("../Data/formants_as.txt", audios)
 df_caract <- cbind(df_caract, df_for[-1])
 ```
 
-Si analizamos los valores de los formantes visualizamos en parte lo esperado. Para el primer formante tenemos frecuencias más altas en las mujeres. Según pasamos a los siguientes a los siguientes formantes notamos la misma evolución como entras características donde las frecuencias en los hombres van tomando más protagonismo.
+Si analizamos los valores de los formantes visualizamos en parte lo esperado. Para el primer formante tenemos frecuencias más altas en las mujeres. Según pasamos a los siguientes a los siguientes formantes notamos luna evolución donde las frecuencias en los hombres van tomando más protagonismo.
 
 ```{r analisis_for_2}
 df_analisis_for <- df_caract %>%
@@ -417,11 +417,11 @@ ggplot(df, aes(x = ZCR_carac, fill = genero)) +
   theme_minimal()
 ```
 
-En esta característica se observa un comportamiento más acorde con lo esperado teóricamente. El Zero Crossing Rate (ZCR) tiende a ser mayor en las mujeres que en los hombres, lo cual es consistente con las propiedades de las señales de voz. Este patrón se aprecia tanto en la distribución general del ZCR por género como en los locutores individuales, donde, por norma general, las mujeres presentan valores de ZCR superiores. Este resultado refleja que el ZCR es una característica adecuada para diferenciar géneros en nuestro caso de estudio
+En esta característica se observa un comportamiento más acorde con lo esperado teóricamente. El Zero Crossing Rate (ZCR) tiende a ser mayor en las mujeres que en los hombres, lo cual es consistente con las propiedades de las señales de voz. Este patrón se aprecia tanto en la distribución general del ZCR por género como en los locutores individuales, donde, por norma general, las mujeres presentan valores de ZCR superiores. Este resultado refleja que el ZCR es una característica adecuada para diferenciar géneros en nuestro caso de estudio.
 
 ## Linear Predictive Coding
 
-El Linear Predictive Coding (LPC) es un modelo matemático que describe una señal de audio en función de una combinación lineal de sus valores pasados. En lugar de representar la señal de audio directamente, se modela como una secuencia de coeficientes que predicen el valor futuro de la señal basándose en los valores previos. Los coeficientes LPC son los parámetros que caracterizan este modelo de predicción lineal. En el contexto de la LPCC, los coeficientes son derivados a partir de los coeficientes LPC mediante una transformación matemática, y son usados frecuentemente como una representación compacta y eficiente de la información espectral de la señal. Nuestro objetivo es analizar si los coeficientes obtenidos para los áudios con locutores hombres tienen patrones distintos a los obtenidos para las locutoras.
+El Linear Predictive Coding (LPC) es un modelo matemático que describe una señal de audio en función de una combinación lineal de sus valores pasados. En lugar de representar la señal de audio directamente, se modela como una secuencia de coeficientes que predicen el valor futuro de la señal basándose en los valores previos. Los coeficientes LPC son los parámetros que caracterizan este modelo de predicción lineal. En el contexto de la LPCC, los coeficientes son derivados a partir de los coeficientes LPC mediante una transformación matemática, y son usados frecuentemente como una representación compacta y eficiente de la información espectral de la señal. Nuestro objetivo es analizar si los coeficientes obtenidos para los audios con locutores hombres tienen patrones distintos a los obtenidos para las locutoras.
 
 Para obtener los coeficientes LPCC seguiremos los siguientes pasos:
 
@@ -431,7 +431,7 @@ Para obtener los coeficientes LPCC seguiremos los siguientes pasos:
 
 3. Transformación a LPCC: Una vez obtenidos los coeficientes LPC, se aplican transformaciones matemáticas (como la transformada cepstral) para obtener los coeficientes LPCC. 
 
-Calcularemos los coeficientes para cada ventana de cada áudio con la función "calc_lpcc", que aplica los pasos anteriores para obtenerlos. Usaremos orden 4, lo que significa que obtendremos 4 coeficientes por ventana. Por cada audio calcularemos la media y desviación estándar de los coeficientes.
+Usaremos orden 4, lo que significa que obtendremos 4 coeficientes por ventana. Por cada audio calcularemos la media y desviación estándar de los coeficientes.
 
 ```{r}
 # Parámetros
@@ -481,11 +481,13 @@ summarise(
   lpcc_4_mean = mean(lpcc_4), lpcc_4_sd = sd(lpcc_4),
   .groups="keep"
 )
+
+df_caract <- cbind(df_caract, df[-c(1:6)])
 ```
 
 A continuación, analizaremos si es posible identificar patrones en los coeficientes que permitan discernir el género del locutor.
 
-Vamos a filtrar por la pista de áudio y veremos si se aprecian diferencias entre la media y la desviación estándar en función del género del locutor. Hemos ignorado el valor del primer coeficiente pues siempre es 1.
+Vamos a filtrar por la pista de audio y veremos si se aprecian diferencias entre la media y la desviación estándar en función del género del locutor. Hemos ignorado el valor del primer coeficiente pues siempre es 1.
 
 ```{r}
 # Resumen descriptivo de los coeficientes LPCC por género
@@ -514,7 +516,7 @@ knitr::kable(summary_stats[-c(2, 3)], format = "latex",
 
 # Resumen descriptivo de los coeficientes LPCC por género
 # Calcular estadísticas descriptivas por género
-summary_stats <-df_totales %>%
+summary_stats <- df_totales %>%
   dplyr::filter(pista == '03') %>%
   group_by(genero) %>%
   summarise(
@@ -537,13 +539,13 @@ knitr::kable(summary_stats[-c(2, 3)], format = "latex",
   kable_styling(position = "center", full_width = FALSE)
 ```
 
-Notamos que ciertos patrones se repiten para todas las pistas de áudio. La media de los coeficientes 2 y 4 correspondientes a los chicos es mayor que la de las chicas en todas las pistas, mientras que con el coeficiente 3 pasa al contrario. También podemos destacar que la desviación estándar de los coeficientes es en todos los casos superior para los locutores chicos que para las chicas. 
+Notamos que ciertos patrones se repiten para todas las pistas de audio. La media de los coeficientes 2 y 4 correspondientes a los chicos es mayor que la de las chicas en todas las pistas. Mientras que con el coeficiente 3 pasa al contrario. También podemos destacar que la desviación estándar de los coeficientes es en todos los casos superior para los locutores chicos que para las chicas. 
 
 ## Short-Time Energy
 
-A continuación, vamos a extraer la Short-Time Energy (STE) de cada uno de nuestros audios y analizaremos las diferencias para cada locutor y cada género. La Short-Time Energy (STE) mide la energía contenida en una señal dentro de pequeñas ventanas temporales. Puede ser muy útil para analizar variaciones de energía a lo largo del tiempo. Para nuestro caso, puede ser particularmente interesante porque las variaciones de energía a lo largo del tiempo pueden reflejar características importantes de la voz humana, como la intensidad, los patrones de habla y las pausas.
+La característica Short-Time Energy (STE) mide la energía contenida en una señal dentro de pequeñas ventanas temporales. Puede ser muy útil para analizar variaciones de energía a lo largo del tiempo. Para nuestro caso, puede ser particularmente interesante porque las variaciones de energía a lo largo del tiempo pueden reflejar características importantes de la voz humana, como la intensidad, los patrones de habla y las pausas.
 
-El procedimiento que hemos seguido consiste en tomar cada señal (audio) y dividirla en ventanas temporales. Luego, calculamos la energía cuadrática media para cada ventana y la normalizamos. Finalmente, promediamos los valores de STE normalizados obtenidos en cada áudio para obtener un único valor representativo por audio.
+El procedimiento que hemos seguido consiste en tomar cada señal (audio) y dividirla en ventanas temporales. Luego, calculamos la energía cuadrática media para cada ventana y la normalizamos. Finalmente, promediamos los valores de STE normalizados obtenidos en cada audio para obtener un único valor representativo.
 
 ```{r extraccion_caract_ste}
 ste_c <- rep(0.0, length(audios))

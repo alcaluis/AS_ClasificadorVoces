@@ -8,13 +8,13 @@ author:
     email: jugarbus@alumni.uv.es
     affiliation: UV
   - name: Gabriel Ivars Asensio
-    email: bob@example.com
+    email: gaia2@alumni.uv.es
     affiliation: UV
   - name: Noé López García
-    email: bob@example.com
+    email: nologar@alumni.uv.es
     affiliation: UV
   - name: José Miguel Palazón Caballero
-    email: bob@example.com
+    email: jomipaca@alumni.uv.es
     affiliation: UV
   - name: Joan Pedro Bruixola
     email: jopebrui@alumni.uv.es
@@ -82,16 +82,16 @@ source("../Utils/carga_datos.R")
 
 ```{r limpieza_audios}
 # Cargar datos + Metadatos
-# w <- readWave("../Data/whatstheweatherlike.wav") # Audio ejemplo
 carga <- carga_audios("../Data/Audios/")
 audios <- carga[[1]]
 meta_audios <- carga[[2]]
 
 # 1. Eliminación ruido
-audios <- limpieza_senales(audios)
+audios_lim <- limpieza_senales(audios)
 
 # 2. Normalización
-audios <- normalizacion(audios)
+audios <- normalizacion(audios_lim, norm_amplitud=FALSE)
+audios_norm <- normalizacion(audios_lim)
 
 # 3. DataFrame características
 df_caract <- data.frame("id_audio" = meta_audios$id_audio)
@@ -116,11 +116,11 @@ El cálculo de los coeficientes se constituye de los siguientes pasos:
 5. **Mel-Filter**. Se suma las energías de las componentes espectrales por cada escala de Mel. Al resultado del filtrado se escalará logarítmicamente.
 5. **Discrete Cousine Transform**. Finalmente se aplicará la siguiente transformada: $C(n) = \sum Ek * cos(n * (k-0.5) * \pi / 40)$ para volver al dominio del tiempo. Obteniendo los coeficientes de Mel que recogen la energía total escalada por cada banda de frecuencia por cada intervalo.
 
-```{r extraccion_caract_mfcc, warning=FALSE}
+```{r extraccion_caract_mfcc, warning=FALSE,}
 mel_coefs <- list()
 
 id <- 1
-for (audio in audios) {
+for (audio in audios_norm) {
   # Calculo de coeficientes y media por cada audio
   coefs <- colMeans(melfcc(audio,
                            minfreq = 50,
@@ -310,7 +310,9 @@ knitr::kable(cbind(df_a, df_e[-1]), format = "latex",
              booktabs = TRUE, 
              caption = "Formantes en las vocales A y E", 
              align = 'lll', centering = TRUE,
-             table.envir = "table", position = "H")
+             label = NA,
+             table.envir = "table", position = "H") %>%
+  kable_styling(position = "center", full_width = FALSE)
 ```
 
 A partir de los datos obtenidos, podemos diferenciar claramente el género del locutor. Para el caso de la vocal E, los formantes 1 y 2, para las mujeres son más altos. Sin embargo, si luego observamos en el caso de la vocal A, para el formante 1, tenemos valores muy similares, es solo en el formante 2 donde podemos diferenciar. Teniendo otra vez valores inferiores en los hombres.
@@ -417,6 +419,192 @@ ggplot(df, aes(x = ZCR_carac, fill = genero)) +
 
 En esta característica se observa un comportamiento más acorde con lo esperado teóricamente. El Zero Crossing Rate (ZCR) tiende a ser mayor en las mujeres que en los hombres, lo cual es consistente con las propiedades de las señales de voz. Este patrón se aprecia tanto en la distribución general del ZCR por género como en los locutores individuales, donde, por norma general, las mujeres presentan valores de ZCR superiores. Este resultado refleja que el ZCR es una característica adecuada para diferenciar géneros en nuestro caso de estudio
 
+## Linear Predictive Coding
+
+El Linear Predictive Coding (LPC) es un modelo matemático que describe una señal de audio en función de una combinación lineal de sus valores pasados. En lugar de representar la señal de audio directamente, se modela como una secuencia de coeficientes que predicen el valor futuro de la señal basándose en los valores previos. Los coeficientes LPC son los parámetros que caracterizan este modelo de predicción lineal. En el contexto de la LPCC, los coeficientes son derivados a partir de los coeficientes LPC mediante una transformación matemática, y son usados frecuentemente como una representación compacta y eficiente de la información espectral de la señal. Nuestro objetivo es analizar si los coeficientes obtenidos para los áudios con locutores hombres tienen patrones distintos a los obtenidos para las locutoras.
+
+Para obtener los coeficientes LPCC seguiremos los siguientes pasos:
+
+1. Preprocesamiento de la señal: La señal de audio se segmenta en ventanas de corto tiempo (frames) para su análisis.
+
+2. Cálculo de los coeficientes LPC: A partir de cada segmento de la señal, se calcula un conjunto de coeficientes LPC (usaremos la función lpc). Estos coeficientes describen cómo la señal futura puede ser predicha a partir de los valores anteriores.
+
+3. Transformación a LPCC: Una vez obtenidos los coeficientes LPC, se aplican transformaciones matemáticas (como la transformada cepstral) para obtener los coeficientes LPCC. 
+
+Calcularemos los coeficientes para cada ventana de cada áudio con la función "calc_lpcc", que aplica los pasos anteriores para obtenerlos. Usaremos orden 4, lo que significa que obtendremos 4 coeficientes por ventana. Por cada audio calcularemos la media y desviación estándar de los coeficientes.
+
+```{r}
+# Parámetros
+frame_size <- 512  # Tamaño del frame
+overlap <- 128     # Solapamiento
+order <- 4         # Orden de LPC
+
+# Aplicar la función a todos los audios y calcular los LPCCs
+lpcc_results <- lapply(audios, function(wav) {
+  # Convertir audio a vector (usando el canal 'left' para señales mono)
+  signal <- as.vector(wav@left)
+  calc_lpcc(signal, frame_size, overlap, order)
+})
+```
+
+```{r}
+df_list <- lapply(1:length(lpcc_results), function(i) {
+  # Para cada audio, expandimos cada ventana y sus coeficientes LPCC
+  audio_lpcc <- lpcc_results[[i]]
+  # Convertir cada ventana (lista de 4 coeficientes) en un dataframe de 4 columnas
+  audio_df <- do.call(rbind, lapply(audio_lpcc, function(window) {
+    data.frame(lpcc_1 = window[1], lpcc_2 = window[2], lpcc_3 = window[3], lpcc_4 = window[4])
+  }))
+  
+  # Agregar una columna 'audio_id' para identificar el audio
+  audio_df$id_audio <- i
+  return(audio_df)
+})
+
+# Combinar todas las listas de dataframes en uno solo
+final_df <- do.call(rbind, df_list)
+
+df_totales <- final_df %>%
+  left_join(meta_audios, by = "id_audio")  # Combinar los datos
+# Reordenar los niveles de los locutores
+df_totales$locutor <- factor(df_totales$locutor,
+                             levels = c("01", "02", "03", "05", "06","04" ,"07", "08", "09", "10"))
+```
+
+```{r, warning=FALSE}
+df <- df_totales %>%
+group_by(id_audio, genero, pista, locutor) %>%
+summarise(
+  lpcc_1_mean = mean(lpcc_1), lpcc_1_sd = sd(lpcc_1),
+  lpcc_2_mean = mean(lpcc_2), lpcc_2_sd = sd(lpcc_2),
+  lpcc_3_mean = mean(lpcc_3), lpcc_3_sd = sd(lpcc_3),
+  lpcc_4_mean = mean(lpcc_4), lpcc_4_sd = sd(lpcc_4),
+  .groups="keep"
+)
+```
+
+A continuación, analizaremos si es posible identificar patrones en los coeficientes que permitan discernir el género del locutor.
+
+Vamos a filtrar por la pista de áudio y veremos si se aprecian diferencias entre la media y la desviación estándar en función del género del locutor. Hemos ignorado el valor del primer coeficiente pues siempre es 1.
+
+```{r}
+# Resumen descriptivo de los coeficientes LPCC por género
+# Calcular estadísticas descriptivas por género
+summary_stats <- df_totales %>%
+  dplyr::filter(pista == '02') %>%
+  group_by(genero) %>%
+  summarise(
+    lpcc_1_mean = mean(lpcc_1), lpcc_1_sd = sd(lpcc_1),
+    lpcc_2_mean = mean(lpcc_2), lpcc_2_sd = sd(lpcc_2),
+    lpcc_3_mean = mean(lpcc_3), lpcc_3_sd = sd(lpcc_3),
+    lpcc_4_mean = mean(lpcc_4), lpcc_4_sd = sd(lpcc_4),
+  )
+
+names(summary_stats) <- c("genero", paste0(rep(paste0("C", 1:4), each=2), c("_M", "_SD")))
+
+# Suponiendo que tu dataframe se llama df_coefs
+knitr::kable(summary_stats[-c(2, 3)], format = "latex", 
+             booktabs = TRUE, 
+             caption = "Media y desviación del LPCC para la pista 2", 
+             align = 'ccccccccc',  # Ajusta según el número de columnas
+             centering = TRUE,
+             label = NA,
+             table.envir = "table", position = "H") %>%
+  kable_styling(position = "center", full_width = FALSE)
+
+# Resumen descriptivo de los coeficientes LPCC por género
+# Calcular estadísticas descriptivas por género
+summary_stats <-df_totales %>%
+  dplyr::filter(pista == '03') %>%
+  group_by(genero) %>%
+  summarise(
+    lpcc_1_mean = mean(lpcc_1), lpcc_1_sd = sd(lpcc_1),
+    lpcc_2_mean = mean(lpcc_2), lpcc_2_sd = sd(lpcc_2),
+    lpcc_3_mean = mean(lpcc_3), lpcc_3_sd = sd(lpcc_3),
+    lpcc_4_mean = mean(lpcc_4), lpcc_4_sd = sd(lpcc_4),
+  )
+
+names(summary_stats) <- c("genero", paste0(rep(paste0("C", 1:4), each=2), c("_M", "_SD")))
+
+# Suponiendo que tu dataframe se llama df_coefs
+knitr::kable(summary_stats[-c(2, 3)], format = "latex", 
+             booktabs = TRUE, 
+             caption = "Media y desviación del LPCC para la pista 3", 
+             align = 'ccccccccc',  # Ajusta según el número de columnas
+             centering = TRUE,
+             label = NA,
+             table.envir = "table", position = "H") %>%
+  kable_styling(position = "center", full_width = FALSE)
+```
+
+Notamos que ciertos patrones se repiten para todas las pistas de áudio. La media de los coeficientes 2 y 4 correspondientes a los chicos es mayor que la de las chicas en todas las pistas, mientras que con el coeficiente 3 pasa al contrario. También podemos destacar que la desviación estándar de los coeficientes es en todos los casos superior para los locutores chicos que para las chicas. 
+
+## Short-Time Energy
+
+A continuación, vamos a extraer la Short-Time Energy (STE) de cada uno de nuestros audios y analizaremos las diferencias para cada locutor y cada género. La Short-Time Energy (STE) mide la energía contenida en una señal dentro de pequeñas ventanas temporales. Puede ser muy útil para analizar variaciones de energía a lo largo del tiempo. Para nuestro caso, puede ser particularmente interesante porque las variaciones de energía a lo largo del tiempo pueden reflejar características importantes de la voz humana, como la intensidad, los patrones de habla y las pausas.
+
+El procedimiento que hemos seguido consiste en tomar cada señal (audio) y dividirla en ventanas temporales. Luego, calculamos la energía cuadrática media para cada ventana y la normalizamos. Finalmente, promediamos los valores de STE normalizados obtenidos en cada áudio para obtener un único valor representativo por audio.
+
+```{r extraccion_caract_ste}
+ste_c <- rep(0.0, length(audios))
+id <- 1
+
+for (audio in audios) {
+  ste_c[id] <- mean(STE(audio, audio@samp.rate * 0.02, 50)[,2])
+  id = id + 1
+}
+
+# Agregar caracteristica
+df_caract <- cbind(df_caract, ste_c)
+```
+
+```{r}
+df <- df_caract %>%
+  left_join(meta_audios, by = "id_audio")  # Combinar los datos
+# Reordenar los niveles de los locutores
+df$locutor <- factor(df$locutor,
+                     levels = c("01", "02", "03", "05", "06","04" ,"07", "08", "09", "10"))
+
+```
+
+```{r}
+ggplot(df, aes(x = locutor, y = ste_c, color = genero)) +
+  geom_point(size = 3, alpha = 0.8) +  # Puntos
+  geom_boxplot(aes(group = genero), alpha = 0.3) +  # Boxplots por género
+  labs(
+    title = "Short-Time Energy (STE) por Locutor y Género",
+    x = "Locutor",
+    y = "Short-Time Energy (STE)",
+    color = "Género"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+Observamos que las locutoras tienen una mayor variabilidad en la STE en comparación con los locutores hombres. Esto podría deberse a características propias de las voces femeninas, como el rango de modulación, que es más amplio. Además, las locutoras presentan valores de STE más altos en general. Esto se refleja en una mediana de aproximadamente 0.10, mientras que en los locutores hombres la mediana se encuentra alrededor de 0.07. Esto puede tener relación con la frecuencia fundamental. Las voces femeninas suelen tener una frecuencia fundamental más alta que las voces masculinas. Dado que la STE mide la energía de la señal acústica, una frecuencia fundamental más alta puede generar más energía en las frecuencias superiores, lo que puede reflejarse en un valor más alto de STE.
+
+
+```{r}
+ggplot(df, aes(x = ste_c, fill = genero)) +
+  geom_density(alpha = 0.5) +  # Curvas de densidad
+  labs(
+    title = "Distribución de STE por Género",
+    x = "Short-Time Energy (STE)",
+    y = "Densidad",
+    fill = "Género"
+  ) +
+  theme_minimal()
+```
+
+Las curvas de densidad muestran que las voces femeninas tienen una distribución más amplia y desplazada hacia valores más altos de STE, lo que confirma lo que hemos visto en el boxplot. Los locutores hombres, por otro lado, presentan una distribución más concentrada y con menor dispersión. Aunque hay diferencias entre géneros, también se observa cierto solapamiento en las densidades de STE. Esto indica que, si bien hay tendencias generales, la STE por sí sola puede no ser completamente discriminativa entre géneros en todos los casos.
+
+En conclusión, los resultados sugieren que la Short-Time Energy es una métrica que capta diferencias significativas entre géneros, aunque también está influenciada por características individuales.
+
+```{r guardar_caracteristicas}
+save(df_caract, file = "../Data/caracteristicas_precalculadas.RData")
+```
+
+
 # Algoritmos de ML
 
 ## Clustering
@@ -430,4 +618,6 @@ En esta característica se observa un comportamiento más acorde con lo esperado
 ```{r algoritmos_clasificacion}
 # WIP
 ```
+
+
 

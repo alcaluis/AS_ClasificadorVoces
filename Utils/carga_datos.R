@@ -29,6 +29,9 @@ carga_audios <- function(path) {
 normalizacion <- function(audios, duracion=10, norm_amplitud=TRUE) {
   # Partiendo de que todas las frecuencias de muestreo son
   # iguales.
+  
+  maximum <- max(audios[[1]]@left)
+  minimum <- min(audios[[1]]@left)
   for (id_audio in 1:length(audios)) {
     # Normalizar duracion
     nueva_len <- audios[[id_audio]]@samp.rate * duracion
@@ -41,13 +44,21 @@ normalizacion <- function(audios, duracion=10, norm_amplitud=TRUE) {
     }
     
     # Se asume canal MONO
-    min_amp <- min(audios[[id_audio]]@left)
-    max_amp <- max(audios[[id_audio]]@left)
-    audios[[id_audio]]@left <- 2 * (audios[[id_audio]]@left - min_amp) /
-                                   (max_amp - min_amp) - 1
-    audios[[id_audio]]@right <- 2 * (audios[[id_audio]]@right - min_amp) /
-                                    (max_amp - min_amp) - 1
-    
+    if (maximum < max(audios[[id_audio]]@left)) {
+      maximum <- max(audios[[id_audio]]@left)
+    }
+    if (minimum < min(audios[[id_audio]]@left)) {
+      minimum <- min(audios[[id_audio]]@left)
+    }
+  }
+  
+  if (norm_amplitud) {
+    for (id_audio in 1:length(audios)) {
+      audios[[id_audio]]@left <- 2 * (audios[[id_audio]]@left - minimum) /
+        (maximum - minimum) - 1
+      audios[[id_audio]]@right <- 2 * (audios[[id_audio]]@right - minimum) /
+        (maximum - minimum) - 1
+    }
   }
   
   return(audios)

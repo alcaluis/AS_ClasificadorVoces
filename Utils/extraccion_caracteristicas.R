@@ -65,12 +65,14 @@ FO <- function(signal, sampling_rate, window_size = 2) {
 }
 
 # ZCR
-ZCR_FUN<-function(signal,sampling_rate,window_size=2){
+ZCR_FUN <- function(signal, sampling_rate, window_size=2) {
   # Duración de la señal en tiempo
   longitud_senal <- length(signal) / sampling_rate
   # Número de ventanas
   num_ventanas <- round(longitud_senal / window_size)
-  vector_zcr<-zcr(signal,sampling_rate,wl=length(signal)/num_ventanas,ovlp = 50,plot = FALSE)
+  vector_zcr <- zcr(signal, sampling_rate, 
+                    wl = length(signal)/num_ventanas,
+                    ovlp = 50, plot = FALSE)
   # Crear pesos para la media ponderada
   pesos <- rep(1, num_ventanas)
   return(mean(vector_zcr))

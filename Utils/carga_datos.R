@@ -1,5 +1,4 @@
 carga_audios <- function(path) {
-  library(tuneR)
   p_audios <- list.files(path = path, recursive=FALSE,
                          pattern = '\\.wav', full.names = TRUE)
 
@@ -55,9 +54,6 @@ normalizacion <- function(audios, duracion=10, norm_amplitud=TRUE) {
 }
 
 limpieza_ruido <- function(audios, niveles = 3) {
-  # WIP
-  library(wavelets)
-  
   for (id_audio in 1:length(audios)) {
     dwt_sn <- dwt(as.numeric(audios[[id_audio]]@left),
                   n.levels = niveles)
@@ -77,10 +73,6 @@ limpieza_ruido <- function(audios, niveles = 3) {
 
 # Función para preprocesar señales de audio
 limpieza_senales <- function(audios) {
-
-  # Cargar la biblioteca necesaria
-  library(signal)
-  
   # Inicializar lista de resultados
   audios_filtrados <- list()
   
@@ -114,3 +106,57 @@ limpieza_senales <- function(audios) {
   
   return(audios_filtrados)
 }
+
+carga_formants <- function(path, audios) {
+  df_formants <- data.frame(f1_avg = numeric(70), f1_sd = numeric(70),
+                            f2_avg = numeric(70), f2_sd = numeric(70),
+                            f3_avg = numeric(70), f3_sd = numeric(70))
+  
+  fichero_praat <- readLines(path)
+  
+  # Eliminamos comillas
+  fichero_praat <- gsub("\"", "", fichero_praat)
+  
+  # Saltamos primeras lineas
+  f_praat <- fichero_praat[-c(1:4)]
+  
+  # Por cada pista... seguiremos el índice
+  ids_pista <- grep("Table", f_praat)
+  
+  id_audio <- 1
+  for (pista in ids_pista) {
+    # Saltar cabecera datos
+    lin <- pista + 12
+    
+    # 10 segundos de datos, hay por lo general más
+    num_v <- numeric()
+    df_pista <- data.frame(f1=rep(c(num_v, NA), 2000),
+                           f2=rep(c(num_v, NA), 2000),
+                           f3=rep(c(num_v, NA), 2000))
+    
+    ventanas <- as.numeric(f_praat[(lin-1)]) - 1
+    for (i in 0:ventanas) {
+      # Instante del cálculo
+      t <- as.numeric(f_praat[lin + i * 9 + 1])
+      
+      # ¿Se habla en este instante?
+      hablado = TRUE
+      
+      # Formantes
+      # Número de formantes encontrados para este instante
+      n_for <- f_praat[lin + i * 9 + 2]
+      for (f in 1:min(c(n_for, 3))) {
+        df_pista[[f]][i] <- as.numeric(f_praat[lin + i * 9 + 2 + f])
+      }
+    }
+    
+    # Guardar valores de la pista
+    df_formants[id_audio, ] <- c(mean(df_pista[[1]], na.rm=TRUE), sd(df_pista[[1]], na.rm=TRUE),
+                                 mean(df_pista[[2]], na.rm=TRUE), sd(df_pista[[2]], na.rm=TRUE),
+                                 mean(df_pista[[3]], na.rm=TRUE), sd(df_pista[[3]], na.rm=TRUE))
+    id_audio <- id_audio + 1
+  }
+  
+  return(cbind("id_audio"=rep(1:length(audios)), df_formants))
+}
+

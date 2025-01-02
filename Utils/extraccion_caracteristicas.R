@@ -1,12 +1,13 @@
 # PGM 
 
-PGM <- function(signal) {
+PGM <- function(signal, coef=12) {
   
   melfcc <- melfcc(signal,
                   minfreq = 50,
                   maxfreq = 4000,
                   sr = signal@samp.rate, 
                   hoptime = 0.01,
+                  numcep = coef,
                   wintime = 0.025, usecmp = TRUE) 
   
   coefs <- gsignal::idct(melfcc)

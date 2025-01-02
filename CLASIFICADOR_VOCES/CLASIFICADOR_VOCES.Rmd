@@ -106,7 +106,7 @@ id <- 1
 
 for (audio in audios) {
 
-  PGM_left <- PGM(audio) 
+  PGM_left <- PGM(audio, coef=40) 
   
 
   # Almacenar los resultados en las listas
@@ -140,7 +140,7 @@ df$locutor <- factor(df$locutor, levels = c("01", "02", "03", "05", "06","04" ,"
 ggplot(df, aes(x = media_carac, fill = genero)) +
   geom_density(alpha = 0.5) +  # Curvas de densidad
   labs(
-    title = "Distribución de frecuencia asociada a vectores de medias por Género",
+    title = "Distribución asociada a vectores de medias por Género",
     x = "Medias normalizadas",
     y = "Densidad",
     fill = "Género"
@@ -154,7 +154,7 @@ ggplot(df, aes(x = media_carac, fill = genero)) +
 ggplot(df, aes(x = var_carac , fill = genero)) +
   geom_density(alpha = 0.5) +  # Curvas de densidad
   labs(
-    title = "Distribución de frecuencia asociada a vectores de varianzas por Género",
+    title = "Distribución asociada a vectores de varianzas por Género",
     x = "Varianzas normalizadas",
     y = "Densidad",
     fill = "Género"
@@ -245,7 +245,7 @@ ggplot(df, aes(x = FrecuenciaMaxPotencia, fill = genero)) +
 ggplot(df, aes(x = MaxPotencia , fill = genero)) +
   geom_density(alpha = 0.5) +  # Curvas de densidad
   labs(
-    title = "Distribución de frecuencia asociada a potencia máxima por Género",
+    title = "Distribución de potencia máxima por Género",
     x = "Potencia máxima",
     y = "Densidad",
     fill = "Género"

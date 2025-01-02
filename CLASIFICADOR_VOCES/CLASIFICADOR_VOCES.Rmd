@@ -117,7 +117,7 @@ El cálculo de los coeficientes se constituye de los siguientes pasos:
 5. **Mel-Filter**. Se suma las energías de las componentes espectrales por cada escala de Mel. Al resultado del filtrado se escalará logarítmicamente.
 5. **Discrete Cousine Transform**. Finalmente se aplicará la siguiente transformada: $C(n) = \sum Ek * cos(n * (k-0.5) * \pi / 40)$ para volver al dominio del tiempo. Obteniendo los coeficientes de Mel que recogen la energía total escalada por cada banda de frecuencia por cada intervalo.
 
-```{r extraccion_caract_mfcc, warning=FALSE,}
+```{r extraccion_caract_mfcc, warning=FALSE}
 mel_coefs <- list()
 
 id <- 1
@@ -603,10 +603,6 @@ Las curvas de densidad muestran que las voces femeninas tienen una distribución
 
 En conclusión, los resultados sugieren que la Short-Time Energy es una métrica que capta diferencias significativas entre géneros, aunque también está influenciada por características individuales.
 
-```{r guardar_caracteristicas}
-save(df_caract, file = "../Data/caracteristicas_precalculadas.RData")
-```
-
 ## Piecewise Gaussian Modeling
 
 ```{r extraccion_caract_PGM, message=FALSE, warning=FALSE}
@@ -737,7 +733,6 @@ ggplot(df, aes(x = FrecuenciaMaxPotencia, fill = genero)) +
     fill = "Género"
   ) +
   theme_minimal()
-
 ```
 
 ```{r}
@@ -767,13 +762,11 @@ ggplot(df, aes(x = FrecuenciaMaxPotencia, y = MaxPotencia, color = genero, shape
   theme_minimal()
 ```
 
-# Algoritmos de ML
-
-## Clustering
-
-```{r algoritmos_clustering}
-# WIP
+```{r guardar_caracteristicas}
+save(df_caract, file = "../Data/caracteristicas_precalculadas.RData")
 ```
+
+# Algoritmos de ML
 
 ## Clasificación
 

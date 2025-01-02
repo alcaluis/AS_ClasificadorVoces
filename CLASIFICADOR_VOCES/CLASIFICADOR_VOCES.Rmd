@@ -605,6 +605,10 @@ En conclusión, los resultados sugieren que la Short-Time Energy es una métrica
 
 ## Piecewise Gaussian Modeling
 
+El PGM es un método que utiliza una estructura a largo plazo para representar las características, llamadas Ventanas de Tiempo de Integración (ITW). En cada ITW, se tiene un vector de medias y un vector de varianzas.
+
+Para la implementación de este método, primero calculamos el MFSC (Mel Frequency Spectral Coefficient). Es similar al MFCC obtenido anteriormente pero sin la parte de DCT (Discrete Cosine Transform). Una vez calculado, se obtiene una matriz $N \times T$ donde $T$ se refiere al número de vectores espectrales contenidos en una ITW (Ventana de Tiempo de Integración) y N al número de ventanas ITW. A continuación se modela un conjunto de $T$ vectores MFSC consecutivos mediante un modelo gaussiano. Es decir, $N \times T$ de MFSC serán modelados por N gaussianas. Al calcular la matriz de covarianza, solo tomamos el índice diagonal de la matriz de covarianza para generar el vector de varianza. Finalmente, las características del PGM son la concatenación de la media y la varianza normalizadas por sus respectivos máximos y mínimos. Para obtener una característica de media y otra de varianza por audio, hemos calculado la media de cada vector.
+
 ```{r extraccion_caract_PGM, message=FALSE, warning=FALSE}
 # PGM
 # Inicializar listas para almacenar los resultados
@@ -614,7 +618,7 @@ var_charac <- numeric(length(audios))
 # ID para iterar sobre los audios
 id <- 1
 for (audio in audios_norm) {
-  PGM_left <- PGM(audio, coef=40) 
+  PGM_left <- PGM(audio, coef=172) 
   
   # Almacenar los resultados en las listas
   mean_charac[id] <- mean(PGM_left$medias)
@@ -626,8 +630,8 @@ for (audio in audios_norm) {
 
 # Crear un data frame con los resultados
 PGM_caract <- data.frame(
-  media_carac = mean_charac,
-  var_carac = var_charac
+  pgm_mean = mean_charac,
+  pgm_var = var_charac
 )
 
 # Agregar la característica PGM al marco de datos
@@ -642,8 +646,9 @@ df$locutor <- factor(df$locutor,
                      levels = c("01", "02", "03", "05", "06","04" ,"07", "08", "09", "10"))
 ```
 
+
 ```{r}
-ggplot(df, aes(x = media_carac, fill = genero)) +
+p_for1 <- ggplot(df, aes(x = pgm_mean, fill = genero)) +
   geom_density(alpha = 0.5) +  # Curvas de densidad
   labs(
     title = "Distribución asociada a vectores de medias por Género",
@@ -653,10 +658,7 @@ ggplot(df, aes(x = media_carac, fill = genero)) +
   ) +
   theme_minimal()
 
-```
-
-```{r}
-ggplot(df, aes(x = var_carac , fill = genero)) +
+p_for2 <- ggplot(df, aes(x = pgm_var , fill = genero)) +
   geom_density(alpha = 0.5) +  # Curvas de densidad
   labs(
     title = "Distribución asociada a vectores de varianzas por Género",
@@ -666,23 +668,33 @@ ggplot(df, aes(x = var_carac , fill = genero)) +
   ) +
   theme_minimal()
 
+
+ggarrange(p_for1 ,p_for2, nrow=2)
 ```
 
-```{r}
-# Crear la nube de puntos
-ggplot(df, aes(x = media_carac, y = var_charac, color = genero, shape = genero)) +
-  geom_point(size = 3) +
-  labs(
-    x = "Medias normalizadas",
-    y = "Varianzas normalizadas",
-    title = "Nube de Puntos",
-    color = "Género",
-    shape = "Género"
-  ) +
-  theme_minimal()
-```
+
+Las curvas de densidad muestran que para la característica de las medias normalizada, las voces masculinas tienen una menor dispersión que las femeninas y un mayor valor en promedio, pero parecen mezclarse entre sí en un mismo rango de valores. A priori no parece una buena característica para discriminar
+
+La característica asociada a las varianzas normalizadas podría ser un mejor discriminante tampoco parece una buena característica para discrimanr. La dispersión de las voces masculinas es muy grande, asemejandose mucho a una distribución uniforme continua (prácticamente no aportan información). En cambio, la dispersión de las voces femeninas es menor y los valores se concentran mas en torno a la media.
+
+
+
 
 ## Power Spectrum
+
+
+Esta característica nos indica qué tan fuertes están presentes diferentes frecuencias en una señal. Para estimar el Power Spectrum, se utiliza un estimador llamado periodograma. Los pasos a seguir son los siguientes:
+
+
+
+- **Transformada Rápida de Fourier (FFT):** Se aplica la transformada para cambiar al dominio de las frecuencias.
+
+- **Cálculo del periodograma:** Se calcula el módulo al cuadrado de la transformada de Fourier en cada frecuencia. El resultado es el periodograma, que representa la distribución de la potencia de la señal en función de la frecuencia.
+
+- **Frecuencia de máxima potencia en el espectro:** Se identifica la frecuencia en la que se encuentra el valor máximo del espectro de potencia. Este valor de potencia máxima, junto con su frecuencia asociada, se utilizan como características clave para la clasificación de cada audio.
+
+
+
 
 ```{r extraccion_caract_4}
 # PS
@@ -710,8 +722,8 @@ for (audio in audios_norm) {
 
 # Crear un data frame con los resultados
 PS_caract <- data.frame(
-  MaxPotencia = max_potencias,
-  FrecuenciaMaxPotencia = freq_max_potencias
+  ps_pow = max_potencias,
+  ps_frec = freq_max_potencias
 )
 
 # Agregar la característica PS al marco de datos
@@ -724,7 +736,7 @@ df <- df_caract %>%
 ```
 
 ```{r}
-ggplot(df, aes(x = FrecuenciaMaxPotencia, fill = genero)) +
+p_for1 <- ggplot(df, aes(x = ps_frec, fill = genero)) +
   geom_density(alpha = 0.5) +  # Curvas de densidad
   labs(
     title = "Distribución de frecuencia asociada a potencia máxima por Género",
@@ -733,10 +745,8 @@ ggplot(df, aes(x = FrecuenciaMaxPotencia, fill = genero)) +
     fill = "Género"
   ) +
   theme_minimal()
-```
 
-```{r}
-ggplot(df, aes(x = MaxPotencia , fill = genero)) +
+p_for2 <- ggplot(df, aes(x = ps_pow , fill = genero)) +
   geom_density(alpha = 0.5) +  # Curvas de densidad
   labs(
     title = "Distribución de potencia máxima por Género",
@@ -746,11 +756,20 @@ ggplot(df, aes(x = MaxPotencia , fill = genero)) +
   ) +
   theme_minimal()
 
+
+ggarrange(p_for2 ,p_for1, nrow=2)
 ```
+
+
+Se puede observar una mayor concentración de valores más bajos de potencia máxima en las voces masculinas mientras que en las voces femeninas se muestra una distribución más dispersa, con algunos valores más altos de potencia máxima.
+
+La distribución de la frecuencia de máxima potencia en el espectro, a priori, parece un poco mas determinante para la tarea de clasificación. En las voces femeninas hay una mayor densidad en frecuencias medias/altas (alrededor de 190 Hz) mientras que en las voces masculinas pueden diferenciarse dos grupos de frecuencias (bajas y altas), por lo que no parecen estar tan concentradas alrededor de una única frecuencia media.
+
+
 
 ```{r}
 # Crear la nube de puntos
-ggplot(df, aes(x = FrecuenciaMaxPotencia, y = MaxPotencia, color = genero, shape = genero)) +
+ggplot(df, aes(x = ps_frec, y = ps_pow, color = genero, shape = genero)) +
   geom_point(size = 3) +
   labs(
     x = "Frecuencia asociada a máxima potencia (Hz)",
@@ -761,6 +780,17 @@ ggplot(df, aes(x = FrecuenciaMaxPotencia, y = MaxPotencia, color = genero, shape
   ) +
   theme_minimal()
 ```
+
+
+
+En la nube de puntos se puede apreciar los dos grupos de voces masculinas que se han comentado anteriormente. Las que se encuentran en el rango de bajas frecuencias se discriminan perfectamente visualmente, pero luego hay otros audios que se mezclan con los de frecuencias medias/altas de las voces femeninas. Como se puede observar, algunas voces femeninas parecen ser las que tienen mayor potencia entre todos los audios.
+
+
+El outlier situado a la derecha del eje de frecuencias corresponde al audio *f_06_05* y se podría asociar a ruido, en este caso, al portazo de una puerta.
+
+
+
+
 
 ```{r guardar_caracteristicas}
 save(df_caract, file = "../Data/caracteristicas_precalculadas.RData")

@@ -146,7 +146,6 @@ PGM <- function(signal, coef=12) {
 
 # PS
 PS <- function(signal, sampling_rate, span=NULL) {
-
   # Calcular el espectro de potencia usando la función spectrum
   if (is.null(span)) {
     spec <- spectrum(signal, method = "pgram", log = "no", plot = FALSE)

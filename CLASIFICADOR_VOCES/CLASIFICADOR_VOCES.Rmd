@@ -609,7 +609,7 @@ save(df_caract, file = "../Data/caracteristicas_precalculadas.RData")
 
 ## Piecewise Gaussian Modeling
 
-```{r extraccion_caract_PGM, warning=FALSE}
+```{r extraccion_caract_PGM, message=FALSE, warning=FALSE}
 # PGM
 # Inicializar listas para almacenar los resultados
 mean_charac <- numeric(length(audios))
@@ -634,7 +634,7 @@ PGM_caract <- data.frame(
   var_carac = var_charac
 )
 
-# Agregar la característica FO al marco de datos
+# Agregar la característica PGM al marco de datos
 df_caract <- cbind(df_caract, PGM_caract)
 ```
 
@@ -718,7 +718,7 @@ PS_caract <- data.frame(
   FrecuenciaMaxPotencia = freq_max_potencias
 )
 
-# Agregar la característica FO al marco de datos
+# Agregar la característica PS al marco de datos
 df_caract <- cbind(df_caract, PS_caract)
 ```
 
@@ -732,7 +732,7 @@ ggplot(df, aes(x = FrecuenciaMaxPotencia, fill = genero)) +
   geom_density(alpha = 0.5) +  # Curvas de densidad
   labs(
     title = "Distribución de frecuencia asociada a potencia máxima por Género",
-    x = "Frecuencia Fundamental (F0)",
+    x = "Frecuencia máxima",
     y = "Densidad",
     fill = "Género"
   ) +

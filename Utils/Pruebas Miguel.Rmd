@@ -1,0 +1,168 @@
+---
+title: "Pruebas Miguel"
+author: "Miguel Palazón"
+date: "2024-12-31"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Carga de datos
+
+```{r}
+source("carga_datos.R")
+```
+
+```{r}
+audios <- carga_audios("./Data/Audios")
+```
+
+## Harmonic-To-Noise Ratio (HNR)
+
+```{r}
+HNR <- function(sound, sampling_rate, window_length = 512) {
+  # Calculamos la STFT
+  library(seewave)
+  stft_result <- spectro(sound, f = sampling_rate, wl = window_length, plot = FALSE)
+  
+  # Extract spectrogram components
+  freqs <- stft_result$freq       # Frequency values (Hz)
+  times <- stft_result$time       # Time values (s)
+  amplitude_matrix <- stft_result$amp  # Amplitude matrix
+  
+  # Estimate F0 (Fundamental Frequency)
+  f0 <- fund(sound, f = sampling_rate, wl = 512, plot = FALSE)  # Basic pitch estimation
+  f0_mean <- mean(f0, na.rm = TRUE)  # Use the average F0 across the signal
+  
+  # Identify Harmonic Frequencies
+  harmonic_indices <- lapply(1:10, function(h) {
+    which(abs(freqs - h * f0_mean) < 5)  # Allow small tolerance around harmonics
+  })
+  
+  # Extract Harmonic and Noise Energy
+  harmonic_energy <- 0
+  for (idx in unlist(harmonic_indices)) {
+    harmonic_energy <- harmonic_energy + sum(amplitude_matrix[idx, ])
+  }
+  
+  print(harmonic_energy)
+  
+  total_energy <- sum(amplitude_matrix)  # Total energy across all frequencies
+  noise_energy <- total_energy - harmonic_energy  # Residual energy is noise
+  
+  print(total_energy)
+  print(noise_energy)
+  
+  # Compute HNR in dB
+  hnr_db <- 10 * log10(harmonic_energy / noise_energy)
+  return(hnr_db)
+}
+```
+
+```{r}
+HNR <- function(sound) {
+  
+  library(wavelets)
+  wt <- dwt(as.numeric(sound), filter = 'la8')
+
+  harmonic <- wt@V[[1]]
+  noise <- wt@W[[1]]
+  
+  harmonic_energy <- sum(abs(harmonic))
+  noise_energy <- sum(abs(noise))
+  
+  hnr_db <- 10 * log10(harmonic_energy / noise_energy)
+  return(hnr_db)
+}
+```
+
+```{r}
+audio_signal <- audios[[1]][[1]]@left
+sampling_rate <- audios[[1]][[1]]@samp.rate
+
+wow <- HNR2(as.numeric(audio_signal))
+```
+
+```{r}
+audio_signal <- audios[[1]][[1]]@left
+sampling_rate <- audios[[1]][[1]]@samp.rate
+
+stft_result <- spectro(audio_signal, f = sampling_rate, wl = 512, plot = FALSE)
+freqs <- stft_result$freq       # Frequency values (Hz)
+times <- stft_result$time       # Time values (s)
+amplitude_matrix <- stft_result$amp  # Amplitude matrix
+```
+
+```{r}
+# Estimate F0 (Fundamental Frequency)
+f0 <- fund(audio_signal, f = sampling_rate, wl = 512, plot = FALSE)  # Basic pitch estimation
+f0_mean <- mean(f0, na.rm = TRUE)  # Use the average F0 across the signal
+  
+# Identify Harmonic Frequencies
+harmonic_indices <- lapply(1:10, function(h) {
+  which(abs(freqs - h * f0_mean) < 2)  # Allow small tolerance around harmonics
+})
+```
+
+```{r}
+harmonic_energy <- 0
+  for (idx in unlist(harmonic_indices)) {
+    harmonic_energy <- harmonic_energy + sum(amplitude_matrix[idx, ])
+  }
+```
+
+```{r}
+total_energy <- sum(amplitude_matrix)  # Total energy across all frequencies
+noise_energy <- total_energy - harmonic_energy  # Residual energy is noise
+```
+
+```{r}
+audio_signal <- audios[[1]][[1]]@left
+sampling_rate <- audios[[1]][[1]]@samp.rate
+
+wow <- HNR(audio_signal, sampling_rate)
+```
+
+
+
+## Spectral Centroids (CE)
+
+```{r}
+CE <- function(wave) {
+  
+  sampling_rate <- wave@samp.rate
+  audio_signal <- wave@left
+  
+  # Evitamos que la función meanspec devuelva gráficas o listas de números
+  suppressMessages({
+    spectral_wave <- meanspec(audio_signal, f = sampling_rate, wl = 1024, wn = "hanning", plot=FALSE)
+  })
+  spectral_prop <- specprop(spectral_wave, f=sampling_rate)
+  
+  return(spectral_prop$cent)
+}
+```
+
+```{r}
+wave1 <- audios[[1]][[1]]
+audio_signal <- audios[[1]][[1]]@left
+sampling_rate <- audios[[1]][[1]]@samp.rate
+```
+
+```{r}
+wow2 <- CE(wave1)
+```
+
+```{r}
+masc <- audios[[1]][[36]]
+fem <- audios[[1]][[2]]
+
+masc_ce <- CE(masc)
+print(masc_ce)
+fem_ce <- CE(fem)
+print(fem_ce)
+```
+
+

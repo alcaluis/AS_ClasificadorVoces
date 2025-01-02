@@ -17,3 +17,37 @@ STE <- function(wave, wlen, ovlp = 0) {
   # NOTA: Devuelve normalizado
   return(cbind(time.frame, STE/max(STE)))
 }
+
+# HNR
+HNR <- function(wave) {
+  
+  library(wavelets)
+  
+  audio_signal <- db@left
+  wt <- dwt(as.numeric(audio_signal), filter = 'la8')
+  
+  harmonic <- wt@V[[1]]
+  noise <- wt@W[[1]]
+  
+  harmonic_energy <- sum(abs(harmonic))
+  noise_energy <- sum(abs(noise))
+  
+  hnr_db <- 10 * log10(harmonic_energy / noise_energy)
+  return(hnr_db)
+}
+
+# CE
+
+CE <- function(wave) {
+  
+  sampling_rate <- wave@samp.rate
+  audio_signal <- wave@left
+  
+  # Evitamos que la función meanspec devuelva gráficas o listas de números
+  suppressMessages({
+    spectral_wave <- meanspec(audio_signal, f = sampling_rate, wl = 1024, wn = "hanning", plot=FALSE)
+  })
+  spectral_prop <- specprop(spectral_wave, f=sampling_rate)
+  
+  return(spectral_prop$cent)
+}

@@ -56,7 +56,8 @@ Aprovechar para agredecer a todos los colaboradores su intervención.
 
 ```{r setup, include=FALSE}
 rm(list=ls())
-knitr::opts_chunk$set(#warning=FALSE,
+knitr::opts_chunk$set(warning=FALSE,
+                      message=FALSE,
                       out.width = "80%",
                       fig.align = "center",
                       echo = FALSE)
@@ -150,25 +151,25 @@ df_analisis_mel <- df_caract %>%
   dplyr::filter(pista %in% paste0("0", c(1:5)))
 
 p_coe1 <- ggplot(data = df_analisis_mel,
-                 mapping = aes(x = factor(pista), y = MEL_COE1, fill = genero)) +
+                 mapping = aes(x = pista, y = MEL_COE1, fill = genero)) +
             geom_boxplot() +
             ggtitle("Coeficiente(s) de Mel [1]") +
             xlab("Pista audio") + ylab("Valor Coef. Mel")
 
 p_coe2 <- ggplot(data = df_analisis_mel,
-                 mapping = aes(x = factor(pista), y = MEL_COE2_3, fill = genero)) +
+                 mapping = aes(x = pista, y = MEL_COE2_3, fill = genero)) +
             geom_boxplot() +
             ggtitle("Coeficiente(s) de Mel [2:3]") +
             xlab("Pista audio") + ylab("Valor Coef. Mel")
 
 p_coe3 <- ggplot(data = df_analisis_mel,
-                 mapping = aes(x = factor(pista), y = MEL_COE4_6, fill = genero)) +
+                 mapping = aes(x = pista, y = MEL_COE4_6, fill = genero)) +
             geom_boxplot() +
             ggtitle("Coeficiente(s) de Mel [4:6]") +
             xlab("Pista audio") + ylab("Valor Coef. Mel")
 
 p_coe4 <- ggplot(data = df_analisis_mel,
-                 mapping = aes(x = factor(pista), y = MEL_COE7_12, fill = genero)) +
+                 mapping = aes(x = pista, y = MEL_COE7_12, fill = genero)) +
             geom_boxplot() +
             ggtitle("Coeficiente(s) de Mel [7:12]") +
             xlab("Pista audio") + ylab("Valor Coef. Mel")
@@ -191,14 +192,15 @@ id <- 1
 for (audio in audios) {
   # Acceso directo a los canales izquierdo y derecho
   audio_iz <- audio@left
-  audio_de <- audio@right
+  #audio_de <- audio@right
   
   # Calcular FO para cada canal
   F0_iz <- FO(audio_iz, audio@samp.rate)
-  F0_de <- FO(audio_de, audio@samp.rate)
+  #F0_de <- FO(audio_de, audio@samp.rate)
   
   # Promediar los valores calculados
-  FO_carac[id] <- mean(c(F0_iz, F0_de))
+  #FO_carac[id] <- mean(c(F0_iz, F0_de))
+  FO_carac[id] <- F0_iz
   
   # Incrementar el contador
   id <- id + 1
@@ -210,10 +212,7 @@ df_caract <- cbind(df_caract, FO_carac)
 
 ```{r warning=FALSE}
 df <- df_caract %>%
-  left_join(meta_audios, by = "id_audio")  # Combinar los datos
-# Reordenar los niveles de los locutores
-df$locutor <- factor(df$locutor,
-                     levels = c("01", "02", "03", "05", "06","04" ,"07", "08", "09", "10"))
+  left_join(meta_audios, by = "id_audio")
 
 # Crear el gráfico combinado
 ggplot(df, aes(x = locutor, y = FO_carac, color = genero)) +
@@ -333,19 +332,19 @@ df_analisis_for <- df_caract %>%
   dplyr::filter(pista %in% paste0("0", c(1:5)))
 
 p_for1 <- ggplot(data = df_analisis_for,
-                 mapping = aes(x = factor(pista), y = f1_avg, fill = genero)) +
+                 mapping = aes(x = pista, y = f1_avg, fill = genero)) +
             geom_boxplot() +
             ggtitle("F1") +
             xlab("Pista audio") + ylab("Valor frecuencia")
 
 p_for2 <- ggplot(data = df_analisis_for,
-                 mapping = aes(x = factor(pista), y = f2_avg, fill = genero)) +
+                 mapping = aes(x = pista, y = f2_avg, fill = genero)) +
             geom_boxplot() +
             ggtitle("F2") +
             xlab("Pista audio") + ylab("Valor frecuencia")
 
 p_for3 <- ggplot(data = df_analisis_for,
-                 mapping = aes(x = factor(pista), y = f3_avg, fill = genero)) +
+                 mapping = aes(x = pista, y = f3_avg, fill = genero)) +
             geom_boxplot() +
             ggtitle("F3") +
             xlab("Pista audio") + ylab("Valor frecuencia")
@@ -387,10 +386,7 @@ df_caract <- cbind(df_caract, ZCR_carac)
 
 ```{r}
 df <- df_caract %>%
-  left_join(meta_audios, by = "id_audio")  # Combinar los datos
-# Reordenar los niveles de los locutores
-df$locutor <- factor(df$locutor,
-                     levels = c("01", "02", "03", "05", "06","04" ,"07", "08", "09", "10"))
+  left_join(meta_audios, by = "id_audio")
 
 # Crear el gráfico combinado
 ggplot(df, aes(x = locutor, y = ZCR_carac, color = genero)) +
@@ -466,10 +462,7 @@ df_list <- lapply(1:length(lpcc_results), function(i) {
 final_df <- do.call(rbind, df_list)
 
 df_totales <- final_df %>%
-  left_join(meta_audios, by = "id_audio")  # Combinar los datos
-# Reordenar los niveles de los locutores
-df_totales$locutor <- factor(df_totales$locutor,
-                             levels = c("01", "02", "03", "05", "06","04" ,"07", "08", "09", "10"))
+  left_join(meta_audios, by = "id_audio")
 ```
 
 ```{r, warning=FALSE}
@@ -563,10 +556,7 @@ df_caract <- cbind(df_caract, ste_c)
 
 ```{r}
 df <- df_caract %>%
-  left_join(meta_audios, by = "id_audio")  # Combinar los datos
-# Reordenar los niveles de los locutores
-df$locutor <- factor(df$locutor,
-                     levels = c("01", "02", "03", "05", "06","04" ,"07", "08", "09", "10"))
+  left_join(meta_audios, by = "id_audio")
 
 ```
 
@@ -640,15 +630,9 @@ df_caract <- cbind(df_caract, PGM_caract)
 
 ```{r}
 df <- df_caract %>%
-  left_join(meta_audios, by = "id_audio")  # Combinar los datos
-# Reordenar los niveles de los locutores
-df$locutor <- factor(df$locutor,
-                     levels = c("01", "02", "03", "05", "06","04" ,"07", "08", "09", "10"))
-```
+  left_join(meta_audios, by = "id_audio")
 
-
-```{r}
-p_for1 <- ggplot(df, aes(x = pgm_mean, fill = genero)) +
+p_pgm1 <- ggplot(df, aes(x = pgm_mean, fill = genero)) +
   geom_density(alpha = 0.5) +  # Curvas de densidad
   labs(
     title = "Distribución asociada a vectores de medias por Género",
@@ -658,7 +642,7 @@ p_for1 <- ggplot(df, aes(x = pgm_mean, fill = genero)) +
   ) +
   theme_minimal()
 
-p_for2 <- ggplot(df, aes(x = pgm_var , fill = genero)) +
+p_pgm2 <- ggplot(df, aes(x = pgm_var , fill = genero)) +
   geom_density(alpha = 0.5) +  # Curvas de densidad
   labs(
     title = "Distribución asociada a vectores de varianzas por Género",
@@ -669,7 +653,7 @@ p_for2 <- ggplot(df, aes(x = pgm_var , fill = genero)) +
   theme_minimal()
 
 
-ggarrange(p_for1 ,p_for2, nrow=2)
+ggarrange(p_pgm1, p_pgm2, nrow=2)
 ```
 
 Las curvas de densidad muestran que para la característica de las medias normalizada, las voces masculinas tienen una menor dispersión que las femeninas y un mayor valor en promedio, pero parecen mezclarse entre sí en un mismo rango de valores. A priori no parece una buena característica para discriminar
@@ -697,10 +681,9 @@ id <- 1
 
 for (audio in audios_norm) {
   # Acceso directo a los canales izquierdo y derecho
-  audio_left <- audio@left
 
   # Calcular PS para canal izquierdo
-  PS_left <- PS(audio_left, audio@samp.rate, span=9) #Se puede modificar el span
+  PS_left <- PS(audio@left, audio@samp.rate, span=9) #Se puede modificar el span
   
   # Almacenar los resultados en las listas
   max_potencias[id] <- max(PS_left$Potencia)
@@ -803,36 +786,31 @@ df_caract <- cbind(df_caract, HNR_carac)
 
 ```{r}
 df <- df_caract %>%
-  left_join(meta_audios, by = "id_audio")  # Combinar los datos
-# Reordenar los niveles de los locutores
-df$locutor <- factor(df$locutor,
-                     levels = c("01", "02", "03", "05", "06","04" ,"07", "08", "09", "10"))
-```
+  left_join(meta_audios, by = "id_audio")
 
-```{r}
-ggplot(df, aes(x = HNR_carac, fill = genero)) +
+p_hnr1 <- ggplot(df, aes(x = HNR_carac, fill = genero)) +
   geom_density(alpha = 0.5) +  # Curvas de densidad
   labs(
-    title = "Distribución del Harmonic-to-Noise Ratio (HNR) por Género",
+    title = "Distribución HNR por Género",
     x = "Harmonic-to-Noise Ratio (HNR)",
     y = "Densidad",
     fill = "Género"
   ) +
   theme_minimal()
-```
 
-```{r}
-ggplot(df, aes(x = locutor, y = HNR_carac, color = genero)) +
+p_hnr2 <- ggplot(df, aes(x = locutor, y = HNR_carac, color = genero)) +
   geom_point(size = 3, alpha = 0.8) +  # Puntos
   geom_boxplot(aes(group = genero), alpha = 0.3, outlier.shape = NA) +  # Boxplots por género
   labs(
-    title = "Harmonic-to-Noise Ratio (HNR) por Locutor y Género",
+    title = "HNR por Locutor y Género",
     x = "Locutor",
     y = "Harmonic-to-Noise Ratio (HNR)",
     color = "Género"
   )  +  
   theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggarrange(p_hnr1, p_hnr2, ncol=2)
 ```
 
 El gráfico de distribución de densidades muestra una clara diferencia de tendencia entre géneros; mientras que las voces masculinas suelen encontrarse más cerca de la media cercana a 62, el HNR de las voces femeninas está distribuido de forma más uniforme en el rango de valores. De esta forma, valores de HNR cercanos a los extremos podrían indicar mayor probabilidad de que la voz grabada sea femenina y valores cercanos a la media lo contrario. No obstante, esta diferencia de tendencias según el género no es muy evidente o conlcuyente, por lo que este indicador por si mismo puede que no sea suficiente pero potencialmente puede aportar información relevante a un algoritmo de clasificación.
@@ -865,45 +843,224 @@ df_caract <- cbind(df_caract, CE_carac)
 
 ```{r}
 df <- df_caract %>%
-  left_join(meta_audios, by = "id_audio")  # Combinar los datos
-# Reordenar los niveles de los locutores
-df$locutor <- factor(df$locutor, levels = c("01", "02", "03", "05", "06","04" ,"07", "08", "09", "10"))
-```
+  left_join(meta_audios, by = "id_audio")
 
-```{r}
-ggplot(df, aes(x = CE_carac, fill = genero)) +
+p_ce1 <- ggplot(df, aes(x = CE_carac, fill = genero)) +
   geom_density(alpha = 0.5) +  # Curvas de densidad
   labs(
-    title = "Distribución del Centroide Espectral (CE) por Género",
+    title = "Distribución CE por Género",
     x = "Centroide Espectral (CE)",
     y = "Densidad",
     fill = "Género"
   ) +
   theme_minimal()
-```
 
-```{r}
-ggplot(df, aes(x = locutor, y = CE_carac, color = genero)) +
+p_ce2 <- ggplot(df, aes(x = locutor, y = CE_carac, color = genero)) +
   geom_point(size = 3, alpha = 0.8) +  # Puntos
   geom_boxplot(aes(group = genero), alpha = 0.3, outlier.shape = NA) +  # Boxplots por género
   labs(
-    title = "Centroide Espectral (CE) por Locutor y Género",
+    title = "CE por Locutor y Género",
     x = "Locutor",
     y = "Centroide Espectral (CE)",
     color = "Género"
   )  +  
   theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggarrange(p_ce1, p_ce2, ncol=2)
 ```
 
 Notamos un comportamiento muy semejante al de la característica Harmonic-to-Noise Ratio (HNR): los CE de las voces masculinas se encuentran mucho más concentrados en torno a una media cercana a 175 mientras que las voces femeninas se reparten de forma más homogénea a lo largo del rango total 100-260, teniendo dos máximos locales en 120 y 230.
 
 En cuánto al análisis por locutor, podemos observar considerable variabilidad de centroides espectrales dependiendo del audio (salvo en el caso del locutor 01), lo que puede dificultar el uso de esta medida para la identificación concreta del locutor. Sin embargo, al igual que en características anteriores la diferencia de distribución de densidad entre géneros puede aportar información relevante a la hora de clasificarlos.
 
+## Shimmer
+
+La característica Shimmer mide la variabilidad de ciclo a ciclo de la amplitud en una señal de voz. Esta variabilidad se ve afectada por la tensión de las cuerdas vocales y factores fisiológicos.
+
+Para capturar esta variabilidad en primer lugar diferenciamos la señal y normalizamos estas diferencias según las amplitudes de la señal original. Despues realizamos la media de estas diferencias y por ultimo transformamos el resultado de decibels.
+
+```{r extraccion_caract_SH}
+# SH
+# Inicializar el vector para la característica ZCR
+SH_carac <- rep(0.0, length(audios))
+
+# ID para iterar sobre los audios
+id <- 1
+
+for (audio in audios) {
+  # Acceso directo a los canales izquierdo y derecho
+  audio_iz <- audio@left
+  #audio_de <- audio@right
+  
+  # Calcular FO para cada canal
+  SH_iz <- SH(audio_iz)
+  #SH_de <-SH(audio_de)
+  
+  # Promediar los valores calculados
+  SH_carac[id] <- SH_iz
+  # Incrementar el contador
+  id <- id + 1
+}
+
+# Normalizados
+SH_carac_norm <- rep(0.0, length(audios))
+id <- 1
+
+for (audio2 in audios_norm) {
+  # Acceso directo a los canales izquierdo y derecho
+  audio_iz <- audio2@left
+  #audio_de <- audio2@right
+  
+  # Calcular FO para cada canal
+  SH_iz <- SH(audio_iz)
+  #SH_de <-SH(audio_de)
+  
+  # Promediar los valores calculados
+  SH_carac_norm[id] <- SH_iz
+  # Incrementar el contador
+  id <- id + 1
+}
+
+# Agregar la característica ZCR al marco de datos
+df_caract <- cbind(df_caract, SH_carac)
+df_caract <- cbind(df_caract, SH_carac_norm)
+
+df <- df_caract %>%
+  left_join(meta_audios, by = "id_audio")
+```
+
+```{r}
+p_s1 <- ggplot(df, aes(x = SH_carac, fill = genero)) +
+  geom_density(alpha = 0.5) +  # Curvas de densidad
+  labs(
+    title = "Distribución de SH por Género sin Normalizar",
+    x = "SH",
+    y = "Densidad",
+    fill = "Género"
+  ) +
+  theme_minimal()
+
+p_s2 <- ggplot(df, aes(x = SH_carac_norm, fill = genero)) +
+  geom_density(alpha = 0.5) +  # Curvas de densidad
+  labs(
+    title = "Distribución de SH por Género y Normalizados",
+    x = "SH",
+    y = "Densidad",
+    fill = "Género"
+  ) +
+  theme_minimal()
+
+ggarrange(p_s1, p_s2, nrow=2)
+```
+
+Podemos observar en el grafico de densidad diferencias en la distribución por generlo. La distribucion de SH para mujeres parece estar mas concentrados, tanto en los datos que se han normalizado y los que no, mientras que la distribucion para hombres parece estar más dispersa. Estas diferencias podrían reflejar características fisiológicas de las cuerdas vocales.
+
+Aunque se observan diferencias claras entre géneros en términos de rango y dispersión de SH, también es evidente que hay un solapamiento y variabilidad entre locutores del mismo género.
+
+Esto indica que SH puede ser una característica útil para clasificación de locutores dentro del mismo género o entre géneros, pero debería combinarse con otras métricas para obtener resultados más precisos.
+
+## Perceptual Linear Prediction
+
+El Perceptual Linear Prediction (PLP) es una técnica de extracción de características basada en principios psicoacústicos que incorpora el modelo de predicción lineal (LPC) para representar señales acústicas de forma robusta y compacta. Aunque comparte similitudes con el cálculo tradicional de coeficientes LPC, PLP introduce modificaciones inspiradas en la percepción humana del sonido, ajustando el espectro de la señal para reflejar cómo el oído humano procesa y percibe las frecuencias.
+
+Para obtener los coeficientes LPCC seguiremos los siguientes pasos:
+
+1. Calculamos el espectrograma utilizando una ventana Hamming.
+
+2. Extraer la densidad espectral de potencia (PSD).
+
+3. Banco de filtros Bark: Filtramos la señal mediante un banco de filtros basado en las bandas críticas percibidas por el oído humano.
+
+4. Aplicamos un filtro de pre-énfasis para ajustar las amplitudes de frecuencias para reflejar cómo el oído humano percibe las distintas intensidades a diferentes frecuencias.
+
+5. Aplicamos una transformación para simular la potencia percibida por el oído humano. Cada elemento espectral se eleva a la potencia de 0.33. Este enfoque se utiliza en lugar de una transformación logarítmica porque el logaritmo tiende a comprimir de forma más agresiva los valores altos, mientras que la raíz cúbica proporciona una representación más fiel de la percepción auditiva, especialmente en señales con variaciones amplias de intensidad.
+
+6. Cálculo de coeficientes LPC: A partir de cada segmento de la señal(usaremos la función lpc)
+
+7. Calcular los coeficientes cepstrales (LPCCs): Transformamos los coeficientes LPC en coeficientes cepstrales LPCCS.
+
+Por lo tanto, la dimensión de salida de nuestras características dependerá del orden seleccionado para los modelos lineales, así como del tamaño de la ventana y el solapamiento utilizado. En nuestro caso, siguiendo recomendaciones generales, obtenemos una salida aproximadamente de 14X6,247.  Para compactar aún más la información, calcularemos la media de cada coeficiente, lo que nos dará un vector de longitud 14.
+A la hora de aplicar modelos, podríamos explorar tanto el uso de la matriz completa como el vector compacto que resume la información. Sin embargo, para la visualización de los valores de los coeficientes según el locutor, emplearemos el vector compacto.
+
+```{r extraccion_caract_PLP}
+# Guardamos cada coeficiente de la salida como una columna nueva excluyendo el primer coeficiente pues siempre es 0
+num_features <- 14
+PLP_matrix <- matrix(0, nrow = length(audios), ncol = num_features-1)
+
+# Caracteristica PLP como lista para almacenar el vector en una columna
+# Puede ser util en los modelos de ml
+PLP_carac <- vector("list", length(audios))
+PLP_carac_matriz <- vector("list", length(audios))
+
+id <- 1
+
+for (audio in audios) {
+  # Calcular PLP para cada canal
+  
+  PLP_iz <- PLP(audio, wlen = 256, ovlp = 70, side = 'l')
+  # PLP_de <- PLP(audio, wlen = 256, ovlp = 70, side = 'r')
+  
+  # Promediar los valores calculados
+  # PLP_med <- (PLP_iz + PLP_de) / 2
+  
+  # Almacenar el resultado en la lista
+  PLP_carac_matriz[[id]] <- PLP_iz
+  
+  PLP_iz <- rowMeans(PLP_iz)
+  #PLP_de <- rowMeans(PLP_de)
+  
+  # Promediar los valores calculados
+  # PLP_med <- (PLP_iz + PLP_de) / 2
+  
+  PLP_matrix[id, ] <- PLP_iz[-1]  # Primer coeficiente siempre 0
+  PLP_carac[[id]] <- PLP_iz
+  
+  id <- id + 1
+}
+
+colnames(PLP_matrix) <- paste0("PLP_c", 2:num_features)
+
+# Combinar el nuevo marco de datos con el original
+df_caract <- cbind(df_caract, PLP_matrix)
+
+# df_caract$PLP_carac <- PLP_carac
+# df_caract$PLP_carac_matriz <- PLP_carac_matriz
+
+# Verificar el resultado
+# print(head(df_caract))
+
+df <- df_caract %>%
+  left_join(meta_audios, by = "id_audio")
+```
+
+```{r, include=FALSE}
+names_plp <- paste0("PLP_c", 2:14)
+
+for (i in names_plp) {
+  print(
+    ggplot(df, aes(x = locutor, y = .data[[i]], color = genero)) +
+      geom_point(size = 3, alpha = 0.8) +  # Puntos
+      geom_boxplot(aes(group = genero), alpha = 0.3, outlier.shape = NA) +  # Boxplots por género
+      labs(
+        title = paste("Distribución de", i, "por Locutor y Género"),
+        x = "Locutor",
+        y = i,
+        color = "Género"
+      ) +  
+      theme_minimal() +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  )
+}
+```
+
+# WIP
+
+Las distribuciones muestran una clara diferencia entre locutores, aunque no se observa una distinción significativa entre géneros al analizar un solo coeficiente en particular. Esto sugiere que el coeficiente individual podría ser útil para distinguir entre locutores. Sin embargo, al considerar los 14 coeficientes en conjunto, es probable que se puedan obtener mejores resultados para la clasificación por género.
+
 ```{r guardar_caracteristicas}
 save(df_caract, file = "../Data/caracteristicas_precalculadas.RData")
 ```
-
 
 # Algoritmos de ML
 

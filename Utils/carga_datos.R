@@ -22,7 +22,15 @@ carga_audios <- function(path) {
     id_audio <- append(id_audio, id)
     id = id + 1
   }
-  metadata <- data.frame(genero, pista, locutor, p_audios, id_audio)
+
+  metadata <- data.frame(
+    genero, pista, locutor,
+    p_audios, id_audio)
+  
+  metadata <- metadata %>%
+    mutate(locutor = factor(locutor, levels=c(paste0("0", 1:9), "10"))) %>%
+    mutate(pista = factor(pista))
+             
   return(list(audios, metadata))
 }
 

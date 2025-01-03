@@ -14,7 +14,7 @@ author:
     email: bob@example.com
     affiliation: UV
   - name: José Miguel Palazón Caballero
-    email: bob@example.com
+    email: jomipaca@alumni.uv.es
     affiliation: UV
   - name: Joan Pedro Bruixola
     email: jopebrui@alumni.uv.es
@@ -54,10 +54,19 @@ knitr::opts_chunk$set(echo = TRUE,
                       fig.align = "center")
 
 # Cargar librerías
-librerias <- c("tuneR",    # Lectura de archivos WAV
-               "seewave"   # Manipulación mediante wavelets
+librerias <- c("tuneR",      # Lectura de archivos WAV
+               "seewave",    # Manipulación mediante wavelets
+               "plotly",     # Gráficos 3D
+               "phonTools",  # Libreria para obtención de Formants
+               "dplyr",      # Manipulacion de datos
+               "kableExtra", # Kable para ajutar las tablas
+               "wavelets",   # Libreria para manipulación con Wavelets
+               "signal",     # Funciones de procesado de señales
+               "ggplot2",    # Librería de gráficos
+               "ggpubr",     # Mostrar múltiples ggplots juntos
+               "lomb"
               )
-pacman::p_load(char = librerias)
+pacman::p_load(char = librerias, warn.conflicts=FALSE)
 
 # Cargar utilidades
 source("../Utils/extraccion_caracteristicas.R")
@@ -101,17 +110,50 @@ for (audio in audios) {
 df_caract <- cbind(df_caract, ste_c)
 ```
 
-## Característica 1
+## Harmonic-to-Noise Ratio (HNR)
 
-```{r extraccion_caract_1}
-# WIP
+Esta característica mide la proporción entre la energía de la componente armónica de la señal respecto al ruido presente. Aunque su principal uso es en el área de la sanidad para detectar patologías mediante la voz, también nos puede ayudar a distinguir la claridad y ciertas particularidades de las voces.
+
+Para ello, nos ayudaremos de la descomposición mediante wavelets para separar las Aproximaciones (componente de baja frecuencia de la señal normalmente interpretada como la parte harmónica) de los Detalles (componente de alta frecuencia relacionada con el ruido).
+
+```{r extraccion_caract_HNR, warning=FAÑSE}
+
+HNR_carac <- rep(0.0, length(audios))
+id <- 1
+
+for (audio in audios) {
+  # Calcular HNR para la señal y almacenarla
+  HNR_carac[id] <- HNR(audio)
+  
+  # Incrementar el contador
+  id <- id + 1
+}
+
+# Agregar la característica HNR al marco de datos
+df_caract <- cbind(df_caract, HNR_carac)
 ```
 
-## Característica N
-
-```{r extraccion_caract_n}
-# WIP
+```{r}
+df <- df_caract %>%
+  left_join(meta_audios, by = "id_audio")  # Combinar los datos
+# Reordenar los niveles de los locutores
+df$locutor <- factor(df$locutor, levels = c("01", "02", "03", "05", "06","04" ,"07", "08", "09", "10"))
 ```
+
+```{r}
+ggplot(df, aes(x = HNR_carac, fill = genero)) +
+  geom_density(alpha = 0.5) +  # Curvas de densidad
+  labs(
+    title = "Distribución de HNR por GéneroS",
+    x = "HNR",
+    y = "Densidad",
+    fill = "Género"
+  ) +
+  theme_minimal()
+```
+
+El gráfico muestra una clara diferencia de tendencia entre géneros; mientras que las voces masculinas suelen encontrarse más cerca de una supuesta media, el HNR de las voces femeninas está distribuido de forma más uniforme en el rango de valores. De esta forma, valores de HNR cercanos a los extremos podrían indicar mayor probabilidad de que la voz grabada sea femenina y valores cercanos a la media lo contrario. No obstante, esta diferencia de tendencias según el género no es muy evidente o conlcuyente, por lo que este indicador por si mismo puede que no sea suficiente pero potencialmente puede aportar información relevante a un algoritmo de clasificación.
+
 
 # Algoritmos de ML
 

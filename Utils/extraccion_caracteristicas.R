@@ -23,7 +23,7 @@ HNR <- function(wave) {
   
   library(wavelets)
   
-  audio_signal <- db@left
+  audio_signal <- wave@left
   
   # Realizamos una descomposición wavelet de la señal
   wt <- dwt(as.numeric(audio_signal), filter = 'la8')

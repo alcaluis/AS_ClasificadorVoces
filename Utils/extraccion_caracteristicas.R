@@ -21,8 +21,6 @@ STE <- function(wave, wlen, ovlp = 0) {
 # HNR
 HNR <- function(wave) {
   
-  library(wavelets)
-  
   audio_signal <- wave@left
   
   # Realizamos una descomposición wavelet de la señal

@@ -161,3 +161,46 @@ PS <- function(signal, sampling_rate, span=NULL) {
   
   return(espectro_potencia)
 }
+
+# HNR
+HNR <- function(wave) {
+  
+  audio_signal <- wave@left
+  
+  # Realizamos una descomposición wavelet de la señal
+  wt <- dwt(as.numeric(audio_signal), filter = 'la8')
+  
+  # Interpretamos la Aprox. como parte harmónica y el Detalle como ruido
+  harmonic <- wt@V[[1]]
+  noise <- wt@W[[1]]
+  
+  # Calculamos la energía de cada componente
+  harmonic_energy <- sum(abs(harmonic))
+  noise_energy <- sum(abs(noise))
+  
+  # Habitualmente se representa la proporción de ambas usando un log base 10
+  hnr_db <- 10 * log10(harmonic_energy / noise_energy)
+  return(hnr_db)
+}
+
+# CE
+
+CE <- function(wave) {
+  
+  sampling_rate <- wave@samp.rate
+  audio_signal <- wave@left
+  
+  # Evitamos que la función meanspec devuelva gráficas o listas de números
+  suppressMessages({
+    # Obtenemos la amplitud media de la distribución freuencial
+    # (notamos que también se podría usar spec)
+    spectral_wave <- meanspec(audio_signal, f = sampling_rate, wl = 1024, wn = "hanning", plot=FALSE)
+  })
+  
+  # Calculamos propiedades estadísticas del espectro de frecuencias
+  spectral_prop <- specprop(spectral_wave, f=sampling_rate)
+  
+  # Devolvemos el centroide espectral presente en el specprop
+  return(spectral_prop$cent)
+}
+

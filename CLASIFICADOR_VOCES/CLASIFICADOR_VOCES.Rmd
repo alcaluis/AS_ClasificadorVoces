@@ -48,16 +48,25 @@ output:
 
 ```{r setup, include=FALSE}
 rm(list=ls())
-knitr::opts_chunk$set(echo = TRUE,
-                      #warning=FALSE,
+knitr::opts_chunk$set(#warning=FALSE,
                       out.width = "80%",
-                      fig.align = "center")
+                      fig.align = "center",
+                      echo = FALSE)
 
 # Cargar librerías
-librerias <- c("tuneR",    # Lectura de archivos WAV
-               "seewave"   # Manipulación mediante wavelets
+librerias <- c("tuneR",      # Lectura de archivos WAV
+               "seewave",    # Manipulación mediante wavelets
+               "plotly",     # Gráficos 3D
+               "phonTools",  # Libreria para obtención de Formants
+               "dplyr",      # Manipulacion de datos
+               "kableExtra", # Kable para ajutar las tablas
+               "wavelets",   # Libreria para manipulación con Wavelets
+               "signal",     # Funciones de procesado de señales
+               "ggplot2",    # Librería de gráficos
+               "ggpubr",     # Mostrar múltiples ggplots juntos
+               "lomb"
               )
-pacman::p_load(char = librerias)
+pacman::p_load(char = librerias, warn.conflicts=FALSE)
 
 # Cargar utilidades
 source("../Utils/extraccion_caracteristicas.R")
@@ -66,18 +75,16 @@ source("../Utils/carga_datos.R")
 
 ```{r limpieza_audios}
 # Cargar datos + Metadatos
-# w <- readWave("../Data/whatstheweatherlike.wav") # Audio ejemplo
 carga <- carga_audios("../Data/Audios/")
 audios <- carga[[1]]
 meta_audios <- carga[[2]]
 
-library(wavelets)
-
 # 1. Eliminación ruido
-audios <- limpieza_senales(audios)
+audios_lim <- limpieza_senales(audios)
 
 # 2. Normalización
-audios <- normalizacion(audios)
+audios <- normalizacion(audios_lim, norm_amplitud=FALSE)
+audios_norm <- normalizacion(audios_lim)
 
 # 3. DataFrame características
 df_caract <- data.frame("id_audio" = meta_audios$id_audio)
@@ -109,6 +116,10 @@ df_caract <- cbind(df_caract, ste_c)
 
 ## Característica SH
 
+La característica Shimmer mide la variabilidad de ciclo a ciclo de la amplitud en una señal de voz. Esta variabilidad se ve afectada por la tensión de las cuerdas vocales y factores fisiológicos.
+
+Para capturar esta variabilidad en primer lugar diferenciamos la señal y normalizamos estas diferencias según las amplitudes de la señal original. Despues realizamos la media de estas diferencias y por ultimo transformamos el resultado de decibels.
+
 ```{r extraccion_caract_SH}
 # SH
 # Inicializar el vector para la característica ZCR
@@ -117,12 +128,8 @@ SH_carac <- rep(0.0, length(audios))
 # ID para iterar sobre los audios
 id <- 1
 
-audios_sin_normalizar <- carga[[1]]
 
-# 1. Eliminación ruido
-audios_sin_normalizar <- limpieza_senales(audios_sin_normalizar)
-
-for (audio in audios_sin_normalizar) {
+for (audio in audios) {
   # Acceso directo a los canales izquierdo y derecho
   audio_iz <- audio@left
   audio_de <- audio@right
@@ -142,7 +149,7 @@ SH_carac_norm <- rep(0.0, length(audios))
 
 id <- 1
 
-for (audio2 in audios) {
+for (audio2 in audios_norm) {
   # Acceso directo a los canales izquierdo y derecho
   audio_iz <- audio2@left
   audio_de <- audio2@right
@@ -162,7 +169,12 @@ df_caract <- cbind(df_caract, SH_carac)
 df_caract <- cbind(df_caract, SH_carac_norm)
 ```
 
-
+```{r}
+df <- df_caract %>%
+  left_join(meta_audios, by = "id_audio")  # Combinar los datos
+# Reordenar los niveles de los locutores
+df$locutor <- factor(df$locutor, levels = c("01", "02", "03", "05", "06","04" ,"07", "08", "09", "10"))
+```
 
 ```{r}
 ggplot(df, aes(x = SH_carac, fill = genero)) +
@@ -203,25 +215,74 @@ ggplot(df, aes(x = locutor, y = SH_carac, color = genero)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
 ```
 
+Podemos observar en el grafico de densidad diferencias en la distribución por generlo. La distribucion de SH para mujeres parece estar mas concentrados, tanto en los datos que se han normalizado y los que no, mientras que la distribucion para hombres parece estar más dispersa. Estas diferencias podrían reflejar características fisiológicas de las cuerdas vocales.
+
+Aunque se observan diferencias claras entre géneros en términos de rango y dispersión de SH, también es evidente que hay un solapamiento y variabilidad entre locutores del mismo género.
+
+Esto indica que SH puede ser una característica útil para clasificación de locutores dentro del mismo género o entre géneros, pero debería combinarse con otras métricas para obtener resultados más precisos.
+
+
+
 ## Característica PLP
+
+El Perceptual Linear Prediction (PLP) es una técnica de extracción de características basada en principios psicoacústicos que incorpora el modelo de predicción lineal (LPC) para representar señales acústicas de forma robusta y compacta. Aunque comparte similitudes con el cálculo tradicional de coeficientes LPC, PLP introduce modificaciones inspiradas en la percepción humana del sonido, ajustando el espectro de la señal para reflejar cómo el oído humano procesa y percibe las frecuencias.
+
+Para obtener los coeficientes LPCC seguiremos los siguientes pasos:
+
+1. Calculamos el espectrograma utilizando una ventana Hamming.
+
+2. Extraer la densidad espectral de potencia (PSD).
+
+3. Banco de filtros Bark: Filtramos la señal mediante un banco de filtros basado en las bandas críticas percibidas por el oído humano.
+
+4. Aplicamos un filtro de pre-énfasis para ajustar las amplitudes de frecuencias para reflejar cómo el oído humano percibe las distintas intensidades a diferentes frecuencias.
+
+5. Aplicamos una transformación para simular la potencia percibida por el oído humano. Cada elemento espectral se eleva a la potencia de 0.33. Este enfoque se utiliza en lugar de una transformación logarítmica porque el logaritmo tiende a comprimir de forma más agresiva los valores altos, mientras que la raíz cúbica proporciona una representación más fiel de la percepción auditiva, especialmente en señales con variaciones amplias de intensidad.
+
+6. Cálculo de coeficientes LPC: A partir de cada segmento de la señal(usaremos la función lpc)
+
+7. Calcular los coeficientes cepstrales (LPCCs): Transformamos los coeficientes LPC en coeficientes cepstrales LPCCS.
+
+Por lo tanto, la dimensión de salida de nuestras características dependerá del orden seleccionado para los modelos lineales, así como del tamaño de la ventana y el solapamiento utilizado. En nuestro caso, siguiendo recomendaciones generales, obtenemos una salida aproximadamente de 14X6,247.  Para compactar aún más la información, calcularemos la media de cada coeficiente, lo que nos dará un vector de longitud 14.
+A la hora de aplicar modelos, podríamos explorar tanto el uso de la matriz completa como el vector compacto que resume la información. Sin embargo, para la visualización de los valores de los coeficientes según el locutor, emplearemos el vector compacto.
+
 
 ```{r extraccion_caract_PLP}
 # Guardamos cada coeficiente de la salida como una columna nueva excluyendo el primer coeficiente pues siempre es 0
 num_features <- 14
 PLP_matrix <- matrix(0, nrow = length(audios), ncol = num_features-1)
 
+# Caracteristica PLP como lista para almacenar el vector en una columna
+# Puede ser util en los modelos de ml
+PLP_carac <- vector("list", length(audios))
+PLP_carac_matriz <- vector("list", length(audios))
+
 id <- 1
 
 for (audio in audios) {
   # Calcular PLP para cada canal
-  PLP_iz <- rowMeans(PLP(audio, wlen = 256, ovlp = 70, side = 'l'))
-  PLP_de <- rowMeans(PLP(audio, wlen = 256, ovlp = 70, side = 'r'))
+  
+  PLP_iz <-PLP(audio, wlen = 256, ovlp = 70, side = 'l')
+  PLP_de <- PLP(audio, wlen = 256, ovlp = 70, side = 'r')
+  
+  # Promediar los valores calculados
+  PLP_med <- (PLP_iz + PLP_de) / 2
+  
+  # Almacenar el resultado en la lista
+  PLP_carac_matriz[[id]] <- PLP_med
+  
+  PLP_iz <- rowMeans(PLP_iz)
+  PLP_de <- rowMeans(PLP_de)
+  
+  PLP_med <- (PLP_iz + PLP_de) / 2
   
   # Promediar los valores calculados
   PLP_med <- (PLP_iz + PLP_de) / 2
   
   PLP_matrix[id, ] <- PLP_med[-1]  # Primer coeficiente siempre 0
-
+  
+  PLP_carac[[id]] <- PLP_med
+  
   id <- id + 1
 }
 
@@ -230,15 +291,46 @@ colnames(PLP_matrix) <- paste0("PLP_c", 2:num_features)
 # Combinar el nuevo marco de datos con el original
 df_caract <- cbind(df_caract, PLP_matrix)
 
+df_caract$PLP_carac <- PLP_carac
+
+df_caract$PLP_carac_matriz <- PLP_carac_matriz
 # Verificar el resultado
 print(head(df_caract))
 
 ```
+```{r}
+df <- df_caract %>%
+  left_join(meta_audios, by = "id_audio")  # Combinar los datos
+# Reordenar los niveles de los locutores
+df$locutor <- factor(df$locutor, levels = c("01", "02", "03", "05", "06","04" ,"07", "08", "09", "10"))
+```
 
+```{r}
+names_plp <- paste0("PLP_c", 2:14)
 
+for (i in names_plp) {
+  print(
+    ggplot(df, aes(x = locutor, y = .data[[i]], color = genero)) +
+      geom_point(size = 3, alpha = 0.8) +  # Puntos
+      geom_boxplot(aes(group = genero), alpha = 0.3, outlier.shape = NA) +  # Boxplots por género
+      labs(
+        title = paste("Distribución de", i, "por Locutor y Género"),
+        x = "Locutor",
+        y = i,
+        color = "Género"
+      ) +  
+      theme_minimal() +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  )
+}
+
+```
+## AQUI HE MOSTRADO 14 GRAFICOS PARA VER LA EVOLUCION DE TODOS, COMO MAS O MENOS FUNCIONAN CON QUE MOSTREMOS POCOS SOBRA, SOLO MENCIONAR DESPUES QUE LOS 14 COEFICIENTES TIENEN UN COMPORTAMIENTO SIMILAR
+Las distribuciones muestran una clara diferencia entre locutores, aunque no se observa una distinción significativa entre géneros al analizar un solo coeficiente en particular. Esto sugiere que el coeficiente individual podría ser útil para distinguir entre locutores. Sin embargo, al considerar los 14 coeficientes en conjunto, es probable que se puedan obtener mejores resultados para la clasificación por género.
 
 ```{r}
 # Caracteristica PLP como lista para almacenar el vector en una columna
+# Puede ser util en los modelos de ml
 PLP_carac <- vector("list", length(audios))
 
 id <- 1
@@ -264,6 +356,36 @@ df_caract$PLP_carac <- PLP_carac
 ```
 
 
+```{r}
+# Caracteristica PLP como matriz
+# Puede ser util en los modelos de ml
+PLP_carac_matriz <- vector("list", length(audios)) # Puede ser util en los modelos de ml
+
+id <- 1
+
+for (audio in audios) {
+  # Calcular PLP para cada canal
+  PLP_iz <-PLP(audio, wlen = 256, ovlp = 70, side = 'l')
+  PLP_de <- PLP(audio, wlen = 256, ovlp = 70, side = 'r')
+  
+  # Promediar los valores calculados
+  PLP_med <- (PLP_iz + PLP_de) / 2
+  
+  # Almacenar el resultado en la lista
+  PLP_carac_matriz[[id]] <- PLP_med
+  
+  # Incrementar el contador
+  id <- id + 1
+}
+
+# Si PLP_carac es una lista de vectores, agrégala correctamente al marco de datos
+df_caract$PLP_carac_matriz <- PLP_carac_matriz
+
+```
+
+```{r}
+head(df_caract)
+```
 
 
 # Algoritmos de ML

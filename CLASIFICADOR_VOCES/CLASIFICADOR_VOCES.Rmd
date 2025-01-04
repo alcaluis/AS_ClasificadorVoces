@@ -1074,17 +1074,93 @@ Las distribuciones muestran una clara diferencia entre locutores, aunque no se o
 save(df_caract, file = "../Data/caracteristicas_precalculadas.RData")
 ```
 
-# Algoritmos de ML
+# Selección de características
 
-El primer paso antes de hacer ningún algoritmo de ML es añadir a nuestro df de características las posibles etiquetas de estos algoritmos. En este caso las etiquetas se encuentran en el df meta_audios, siendo estas el locutor y el género.
-```{r añadir labels}
+En el siguiente apartado vamos a probar distintas formas de seleccionar características. Con el objetivo de clasificar mejor sin la necesidad de utilizar todos los recursos. Buscando obtener la máxima relevancia con el objetivo y la menor redundancia.
+
+```{r agregar_etiquetas}
+load("../Data/caracteristicas_precalculadas.RData")
 df_etiquetado <- df_caract %>%
   left_join(meta_audios %>% select(id_audio, genero, locutor), by = "id_audio")
 ```
 
+## Importancias de las características usando RandomForest
+
+En este apartado lanzaremos 1000 random forest, de los cuales obtendremos la importancia de las características. Quedándonos con las 10 mejores características. Siendo estas:
+
+```{r}
+X_sel <- df_etiquetado[!(names(df_etiquetado) %in%
+                                       c("genero", "locutor", "id_audio"))]
+Y_sel <- as.factor(df_etiquetado$genero)
+
+# 1. Qué relevancia tienen las características en el RFC?
+library(randomForest)
+
+
+# Entrenar el modelo de Random Forest
+set.seed(123) # Fijar la semilla para reproducibilidad
+
+names_carac <- names(df_etiquetado)
+vec_imp_f <- numeric(length(names_carac))
+vec_imp_m <- numeric(length(names_carac))
+names(vec_imp_f) <- names_carac
+names(vec_imp_m) <- names_carac
+
+for (i in 1:1000) {
+  rf_sel_carac <-
+    randomForest(x = X_sel,
+                 y = Y_sel,
+                 importance = TRUE,
+                 ntree = 20)
+  
+  vec_imp_f <- vec_imp_f + abs(rf_sel_carac[["importance"]][,1])
+  vec_imp_m <- vec_imp_f + abs(rf_sel_carac[["importance"]][,2])
+}
+vec_total <- vec_imp_f + vec_imp_m
+rf_1000_imp <- names(head(sort(vec_total, decreasing=TRUE), 10))
+```
+`r rf_1000_imp`.
+
+## Técnicas recursivas de eliminación de características (RFE)
+
+Sin embargo, utilizaremos el RFE. Este consistirá en ejecutar algoritmos de selección de características que irá eliminando recursivamente las menos importantes. Probaremos a obtener las 10 mejores características.
+
+```{r}
+# 2. Recursive Feature Elimination RFE
+library(caret)
+r_control <- rfeControl(functions=rfFuncs,
+                        method="cv",
+                        number=10)
+
+rfe_result <- rfe(X_sel, Y_sel, sizes= c(1:10), rfeControl=r_control)
+```
+
+El método devuelve que el número ideal de características es `r length(rfe_result$optVariables)`, siendo las variables más relevantes `r rfe_result$optVariables`.
+
+## Correlaciones
+
+```{r}
+# 3. Correlaciones
+df_numerico <-
+  df_etiquetado[!(names(df_etiquetado) %in% c("genero", "locutor", "id_audio"))] %>%
+  select(rfe_result$optVariables)
+
+matriz_correlacion <- cor(df_numerico)
+
+carac_sel <- names(head(sort(colSums(abs(matriz_correlacion)), decreasing=FALSE),
+                        length(rfe_result$optVariables)/2))
+```
+
+De las características calculadas previamente vamos a reducirlas a la mitad. Para ello utilizaremos las menos correlacionadas entre sí. Siendo estas: `r carac_sel`.
+
+# Algoritmos de ML
+
+El primer paso antes de hacer ningún algoritmo de ML es añadir a nuestro df de características las posibles etiquetas de estos algoritmos. En este caso las etiquetas se encuentran en el df meta_audios, siendo estas el locutor y el género.
+
 # Métodos empleando como etiqueta el género 
 
 Primeramente, preparamos los datos separándolos en conjuntos de train y test. Es fundamental agrupar por género para garantizar un balance adecuado, evitando que un conjunto (por ejemplo, train) tenga una mayoría desproporcionada de un género, como "M", y el otro conjunto, como test, tenga una mayoría de "F". Este enfoque asegura una representación equitativa de ambos géneros en los datos de entrenamiento y prueba.
+
 ```{r}
 set.seed(123) # Fijar la semilla para reproducibilidad
 
@@ -1100,56 +1176,48 @@ train <- bind_rows(
 test <- anti_join(df_etiquetado, train, by = "id_audio")
 ```
 
-Ahora separamos las etiquetas del conjunto de características de train 
+Ahora separamos las etiquetas del conjunto de características de train
+
 ```{r}
 # Mezclar aleatoriamente los datos de train y test (es un shuffle )
 train <- train %>% slice_sample(prop = 1)
 test <- test %>% slice_sample(prop = 1)
 
 # Separar las características y la etiqueta
-X_train <- train %>% select(-genero, -id_audio, -locutor) # Variables predictoras
-y_train <- train$genero                                   # Etiqueta
 
-X_test <- test %>% select(-genero, -id_audio, -locutor)
+# Variables predictoras
+X_train <- train %>% select(-genero, -id_audio, -locutor) %>%
+  select(carac_sel)
+
+# Etiqueta
+y_train <- train$genero
+
+X_test <- test %>% select(-genero, -id_audio, -locutor) %>%
+  select(carac_sel)
 y_test <- test$genero
 
 ```
 
 ## Random forest
+
 ```{r}
 library(randomForest)
-
 # Entrenar el modelo de Random Forest
-rf_model <- randomForest(x = X_train, y = as.factor(y_train), ntree = 20)
+rf_model <- randomForest(x = X_train,
+                         y = as.factor(y_train), ntree = 20)
 
 # Evaluar el modelo en el conjunto de test
 rf_predictions <- predict(rf_model, X_test)
 confusionMatrix(as.factor(rf_predictions), as.factor(y_test))
-
 ```
-## SVM
-```{r}
 
+## SVM
+
+```{r}
 # Entrenar el modelo SVM
 svm_model <- svm(x = X_train, y = as.factor(y_train), kernel = "linear")
 
 # Evaluar el modelo en el conjunto de test
 svm_predictions <- predict(svm_model, X_test)
 confusionMatrix(as.factor(svm_predictions), as.factor(y_test))
-
 ```
-
-## Clustering
-
-```{r algoritmos_clustering}
-# WIP
-```
-
-## Clasificación
-
-```{r algoritmos_clasificacion}
-# WIP
-```
-
-
-

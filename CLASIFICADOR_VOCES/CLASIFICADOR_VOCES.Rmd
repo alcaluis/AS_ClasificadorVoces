@@ -1157,7 +1157,7 @@ De las características calculadas previamente vamos a reducirlas a la mitad. Pa
 
 El primer paso antes de hacer ningún algoritmo de ML es añadir a nuestro df de características las posibles etiquetas de estos algoritmos. En este caso las etiquetas se encuentran en el df meta_audios, siendo estas el locutor y el género.
 
-# Métodos empleando como etiqueta el género 
+## Métodos empleando como etiqueta el género 
 
 Primeramente, preparamos los datos separándolos en conjuntos de train y test. Es fundamental agrupar por género para garantizar un balance adecuado, evitando que un conjunto (por ejemplo, train) tenga una mayoría desproporcionada de un género, como "M", y el otro conjunto, como test, tenga una mayoría de "F". Este enfoque asegura una representación equitativa de ambos géneros en los datos de entrenamiento y prueba.
 
@@ -1198,7 +1198,7 @@ y_test <- test$genero
 
 ```
 
-## Random forest
+### Random forest
 
 ```{r}
 library(randomForest)
@@ -1211,7 +1211,7 @@ rf_predictions <- predict(rf_model, X_test)
 confusionMatrix(as.factor(rf_predictions), as.factor(y_test))
 ```
 
-## SVM
+### SVM
 
 ```{r}
 # Entrenar el modelo SVM

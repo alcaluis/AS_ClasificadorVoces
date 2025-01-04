@@ -73,7 +73,11 @@ librerias <- c("tuneR",      # Lectura de archivos WAV
                "signal",     # Funciones de procesado de señales
                "ggplot2",    # Librería de gráficos
                "ggpubr",     # Mostrar múltiples ggplots juntos
-               "lomb"
+               "lomb",
+               "purrr",
+               "caret",
+               "randomForest",
+               "e1071"
               )
 pacman::p_load(char = librerias, warn.conflicts=FALSE)
 
@@ -180,6 +184,10 @@ ggarrange(p_coe1, p_coe2, p_coe3, p_coe4, ncol = 2, nrow = 2)
 Empezando por el primer coeficiente podemos observar que el género masculino tiene los valores más altos y distribuidos. Para los coeficientes que van del segundo al sexto, podemos ver que los valores femeninos van ganando relevancia según aumentamos el coeficiente, es decir, según captamos mayores frecuencias. Finalmente para los últimos coeficientes vemos que pasa evoluciona hacia lo contrario que en el primer coeficiente. Los valores para los hombres son claramente inferiores y menos distribuidos.
 
 ## Frecuencia fundamental
+
+La frecuencia fundamental es una característica ampliamente utilizada en el análisis de secuencias de audio, especialmente para diferenciar géneros y hablantes. Esto se debe a que representa el tono base de la voz, el cual tiende a ser más bajo en hombres que en mujeres. Su variabilidad entre individuos también lo convierte en un indicador relevante para la identificación de locutores. Por su relación directa con la fisiología vocal, esta métrica es clave en estudios relacionados con la prosodia y la fonética.
+
+Su cálculo se basa en dividir la señal en ventanas (de 2 segundos en este caso) y realizar la Transformada de Fourier en cada una. La frecuencia fundamental en cada ventana se determina como la frecuencia con la máxima amplitud en el espectro resultante, considerando solo la mitad positiva del espectro. Para obtener un único valor representativo de toda la señal, se calcula la media ponderada de estas frecuencias, asignando un peso mayor a las primeras ventanas y eliminando la contribución de los últimos 4 segundos, ya que suelen ser menos relevantes debido a que el locutor ya ha terminado de hablar en la mayoría de los casos.
 
 ```{r}
 # FO
@@ -355,6 +363,10 @@ ggarrange(p_for1,
 ```
 
 ## Zero Crossing Rate
+
+La tasa de cruces por cero (ZCR, por sus siglas en inglés) mide cuántas veces la señal cruza el eje cero en un periodo de tiempo determinado. Es mayor en voces femeninas debido a su mayor frecuencia fundamental, lo que evidencia una estrecha relación entre ambas características. Este parámetro se utiliza frecuentemente en el análisis de señales para distinguir patrones relacionados con la tonalidad y la estructura armónica de la voz.
+
+Para su cálculo, se emplea la función zcr en R, utilizando ventanas con un solapamiento del 50%. Posteriormente, se realiza el promedio de los valores obtenidos en cada ventana para obtener un único valor representativo por señal, similar al enfoque utilizado para calcular la frecuencia fundamental. Esta media permite consolidar la información de toda la señal en un solo parámetro útil para el análisis.
 
 ```{r}
 # ZCR
@@ -1063,6 +1075,69 @@ save(df_caract, file = "../Data/caracteristicas_precalculadas.RData")
 ```
 
 # Algoritmos de ML
+
+El primer paso antes de hacer ningún algoritmo de ML es añadir a nuestro df de características las posibles etiquetas de estos algoritmos. En este caso las etiquetas se encuentran en el df meta_audios, siendo estas el locutor y el género.
+```{r añadir labels}
+df_etiquetado <- df_caract %>%
+  left_join(meta_audios %>% select(id_audio, genero, locutor), by = "id_audio")
+```
+
+# Métodos empleando como etiqueta el género 
+
+Primeramente, preparamos los datos separándolos en conjuntos de train y test. Es fundamental agrupar por género para garantizar un balance adecuado, evitando que un conjunto (por ejemplo, train) tenga una mayoría desproporcionada de un género, como "M", y el otro conjunto, como test, tenga una mayoría de "F". Este enfoque asegura una representación equitativa de ambos géneros en los datos de entrenamiento y prueba.
+```{r}
+set.seed(123) # Fijar la semilla para reproducibilidad
+
+# Crear los conjuntos de train y test balanceados por el género
+train_test_split <- df_etiquetado %>%
+  group_by(genero) %>%
+  group_split()
+
+train <- bind_rows(
+  train_test_split %>% map(~ .x %>% sample_frac(0.75))
+)
+
+test <- anti_join(df_etiquetado, train, by = "id_audio")
+```
+
+Ahora separamos las etiquetas del conjunto de características de train 
+```{r}
+# Mezclar aleatoriamente los datos de train y test (es un shuffle )
+train <- train %>% slice_sample(prop = 1)
+test <- test %>% slice_sample(prop = 1)
+
+# Separar las características y la etiqueta
+X_train <- train %>% select(-genero, -id_audio, -locutor) # Variables predictoras
+y_train <- train$genero                                   # Etiqueta
+
+X_test <- test %>% select(-genero, -id_audio, -locutor)
+y_test <- test$genero
+
+```
+
+## Random forest
+```{r}
+library(randomForest)
+
+# Entrenar el modelo de Random Forest
+rf_model <- randomForest(x = X_train, y = as.factor(y_train), ntree = 20)
+
+# Evaluar el modelo en el conjunto de test
+rf_predictions <- predict(rf_model, X_test)
+confusionMatrix(as.factor(rf_predictions), as.factor(y_test))
+
+```
+## SVM
+```{r}
+
+# Entrenar el modelo SVM
+svm_model <- svm(x = X_train, y = as.factor(y_train), kernel = "linear")
+
+# Evaluar el modelo en el conjunto de test
+svm_predictions <- predict(svm_model, X_test)
+confusionMatrix(as.factor(svm_predictions), as.factor(y_test))
+
+```
 
 ## Clustering
 

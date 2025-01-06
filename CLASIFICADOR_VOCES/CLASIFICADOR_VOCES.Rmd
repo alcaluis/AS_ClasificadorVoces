@@ -1221,3 +1221,62 @@ svm_model <- svm(x = X_train, y = as.factor(y_train), kernel = "linear")
 svm_predictions <- predict(svm_model, X_test)
 confusionMatrix(as.factor(svm_predictions), as.factor(y_test))
 ```
+
+
+## Locutor
+
+Realizamos el mismo proceso anterior para dividir el conjunto de entrenamiento de forma equitativa entre los locutores.
+
+```{r}
+set.seed(123) # Fijar la semilla para reproducibilidad
+
+# Crear los conjuntos de train y test balanceados por el género
+train_test_split <- df_etiquetado %>%
+  group_by(locutor) %>%
+  group_split()
+
+train <- bind_rows(
+  train_test_split %>% map(~ .x %>% sample_frac(0.75))
+)
+
+test <- anti_join(df_etiquetado, train, by = "id_audio")
+
+# Mezclar aleatoriamente los datos de train y test (es un shuffle )
+train <- train %>% slice_sample(prop = 1)
+test <- test %>% slice_sample(prop = 1)
+
+# Separar las características y la etiqueta
+
+# Variables predictoras
+X_train <- train %>% select(-genero, -id_audio, -locutor)
+
+# Etiqueta
+y_train <- train$locutor
+
+X_test <- test %>% select(-genero, -id_audio, -locutor)
+y_test <- test$locutor
+
+```
+
+### Random forest
+
+```{r}
+# Entrenar el modelo de Random Forest
+rf_model <- randomForest(x = X_train,
+                         y = as.factor(y_train), ntree = 20)
+
+# Evaluar el modelo en el conjunto de test
+rf_predictions <- predict(rf_model, X_test)
+confusionMatrix(as.factor(rf_predictions), as.factor(y_test))
+```
+
+### SVM
+
+```{r}
+# Entrenar el modelo SVM
+svm_model <- svm(x = X_train, y = as.factor(y_train), kernel = "linear")
+
+# Evaluar el modelo en el conjunto de test
+svm_predictions <- predict(svm_model, X_test)
+confusionMatrix(as.factor(svm_predictions), as.factor(y_test))
+```

@@ -5,8 +5,8 @@ Trabajo de Análisis de Señales para el Máster de Ciencia de Datos de la UV. C
 
 - Data: Contiene los datos utilizados en la extracción de características. Desde audios, rdata, información precalculada, ...
 - Utils: Contiene dos archivos.
--- carga_datos.R: Tiene funciones relacionadas con la carga de los datos y su preprocesamiento.
--- extraccion_caracteristicas.R: Incluye la implementación de las distintas funciones de extracción de características utilizadas en el proyecto.
+  - carga_datos.R: Tiene funciones relacionadas con la carga de los datos y su preprocesamiento.
+  - extraccion_caracteristicas.R: Incluye la implementación de las distintas funciones de extracción de características utilizadas en el proyecto.
 - CLASIFICADOR_VOCES: Contiene el RMD con el código del proyecto. La estructura de esta carpeta está basada en una plantilla de rticles.
 
 ## Como ejecutar el proyecto

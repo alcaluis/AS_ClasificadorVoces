@@ -60,7 +60,7 @@ Aprovechar para agredecer a todos los colaboradores su intervención.
 rm(list=ls())
 knitr::opts_chunk$set(warning=FALSE,
                       message=FALSE,
-                      out.width = "80%",
+                      out.width = "95%",
                       fig.align = "center",
                       echo = FALSE)
 
@@ -601,7 +601,7 @@ ggarrange(p_ste_1,
           ncol = 2)
 ```
 
-Observamos que las locutoras tienen una mayor variabilidad en la STE en comparación con los locutores hombres. Esto podría deberse a características propias de las voces femeninas, como el rango de modulación, que es más amplio. Además, las locutoras presentan valores de STE más altos en general. Esto se refleja en una mediana de aproximadamente 0.10, mientras que en los locutores hombres la mediana se encuentra alrededor de 0.07. Esto puede tener relación con la frecuencia fundamental. Las voces femeninas suelen tener una frecuencia fundamental más alta que las voces masculinas. Dado que la STE mide la energía de la señal acústica, una frecuencia fundamental más alta puede generar más energía en las frecuencias superiores, lo que puede reflejarse en un valor más alto de STE.
+Observamos que las locutoras tienen una mayor variabilidad en la STE en comparación con los locutores hombres. Esto podría deberse a características propias de las voces femeninas, como el rango de modulación, que es más amplio. Además, las locutoras presentan valores de STE más distribuidos en general. Teniendo una media de aproximadamente 0.08, mientras que en los locutores hombres la media se encuentra alrededor de 0.06. Esto puede tener relación con la frecuencia fundamental. Las voces femeninas suelen tener una frecuencia fundamental más alta que las voces masculinas. Dado que la STE mide la energía de la señal acústica, una frecuencia fundamental más alta puede generar más energía en las frecuencias superiores, lo que puede reflejarse en un valor más alto de STE.
 
 Las curvas de densidad muestran que las voces femeninas tienen una distribución más amplia y desplazada hacia valores más altos de STE, lo que confirma lo que hemos visto en el boxplot. Los locutores hombres, por otro lado, presentan una distribución más concentrada y con menor dispersión. Aunque hay diferencias entre géneros, también se observa cierto solapamiento en las densidades de STE. Esto indica que, si bien hay tendencias generales, la STE por sí sola puede no ser completamente discriminativa entre géneros en todos los casos.
 
@@ -672,7 +672,7 @@ ggarrange(p_pgm1, p_pgm2, nrow=2)
 
 Las curvas de densidad muestran que para la característica de las medias normalizada, las voces masculinas tienen una menor dispersión que las femeninas y un mayor valor en promedio, pero parecen mezclarse entre sí en un mismo rango de valores. A priori no parece una buena característica para discriminar
 
-La característica asociada a las varianzas normalizadas podría ser un mejor discriminante tampoco parece una buena característica para discrimanr. La dispersión de las voces masculinas es muy grande, asemejandose mucho a una distribución uniforme continua (prácticamente no aportan información). En cambio, la dispersión de las voces femeninas es menor y los valores se concentran mas en torno a la media.
+La característica asociada a las varianzas normalizadas tampoco parece ser una buena característica para discriminar. La dispersión de las voces masculinas es muy grande, asemejandose mucho a una distribución uniforme continua (prácticamente no aportan información). En cambio, la dispersión de las voces femeninas es menor y los valores se concentran mas en torno a la media.
 
 ## Power Spectrum
 
@@ -814,7 +814,7 @@ p_hnr2 <- ggplot(df, aes(x = locutor, y = HNR_carac, color = genero)) +
 ggarrange(p_hnr2, p_hnr1, ncol=2)
 ```
 
-El gráfico de distribución de densidades muestra una clara diferencia de tendencia entre géneros; mientras que las voces masculinas suelen encontrarse más cerca de la media cercana a 62, el HNR de las voces femeninas está distribuido de forma más uniforme en el rango de valores. De esta forma, valores de HNR cercanos a los extremos podrían indicar mayor probabilidad de que la voz grabada sea femenina y valores cercanos a la media lo contrario. No obstante, esta diferencia de tendencias según el género no es muy evidente o conlcuyente, por lo que este indicador por si mismo puede que no sea suficiente pero potencialmente puede aportar información relevante a un algoritmo de clasificación.
+El gráfico de distribución de densidades muestra una clara diferencia de tendencia entre géneros; mientras que las voces masculinas suelen encontrarse más cerca de la media cercana a 60-61, el HNR de las voces femeninas está distribuido de forma más uniforme en el rango de valores. De esta forma, valores de HNR cercanos a los extremos podrían indicar mayor probabilidad de que la voz grabada sea femenina y valores cercanos a la media lo contrario. No obstante, esta diferencia de tendencias según el género no es muy evidente o conlcuyente, por lo que este indicador por si mismo puede que no sea suficiente pero potencialmente puede aportar información relevante a un algoritmo de clasificación.
 
 Centrándonos en el HNR según locutor, podemos ver que en el caso del género femenino hay cierta constancia en los valores, agrupándose en un rango no muy amplio que podría ayudar a su identificación. En cuánto al género masculino, sus HNR se encuentran distribuidos en intervalos semejantes por lo que podría ser considerablemente difícil discernir entre locutores masculinos.
 
@@ -868,7 +868,7 @@ p_ce2 <- ggplot(df, aes(x = locutor, y = CE_carac, color = genero)) +
 ggarrange(p_ce2, p_ce1, ncol=2)
 ```
 
-Notamos un comportamiento muy semejante al de la característica Harmonic-to-Noise Ratio (HNR): los CE de las voces masculinas se encuentran mucho más concentradas en torno a una media cercana a 175 mientras que las voces femeninas se reparten de forma más homogénea a lo largo del rango total 100-260, teniendo dos máximos locales en 120 y 230.
+Notamos un comportamiento muy discriminante: los CE de las voces masculinas se encuentran mucho más concentradas en torno a una media cercana a 220 mientras que las voces femeninas están  mayoritariamente concentradas alrededor de 250. Destacar que las voces femeninas tienen un máximo local alrededor de 220.
 
 En cuánto al análisis por locutor, podemos observar considerable variabilidad de centroides espectrales dependiendo del audio (salvo en el caso del locutor 01), lo que puede dificultar el uso de esta medida para la identificación concreta del locutor. Sin embargo, al igual que en características anteriores la diferencia de distribución de densidad entre géneros puede aportar información relevante a la hora de clasificarlos.
 
@@ -1139,15 +1139,15 @@ De las características calculadas previamente vamos a reducirlas a la mitad. Pa
 
 # Algoritmos de ML
 
-El primer paso antes de hacer ningún algoritmo de ML es añadir a nuestro df de características las posibles etiquetas de estos algoritmos. En este caso las etiquetas se encuentran en el df meta_audios, siendo estas el locutor y el género.
+El primer paso antes de hacer ningún algoritmo de ML es añadir a nuestro dataframe de características las posibles etiquetas de estos algoritmos. En este caso las etiquetas se encuentran en el dataframe meta_audios, siendo estas el locutor y el género.
 
-De los algoritmos empleados hemos decidido utilizar un modelo más simple, que en este caso es el Random Forest, y uno más complejo; el SVM. Para evaluar como se compartan a partir de las características extraídas.
+De los algoritmos empleados hemos decidido utilizar un modelo más simple, que en este caso es el Random Forest, y uno más complejo; el SVM. Para evaluar como se comportan a partir de las características extraídas.
 
 ## Métodos empleando como etiqueta el género 
 
 Primeramente, preparamos los datos separándolos en conjuntos de train y test. Es fundamental agrupar por género para garantizar un balance adecuado, evitando que un conjunto (por ejemplo, train) tenga una mayoría desproporcionada de un género, como "M", y el otro conjunto, como test, tenga una mayoría de "F". Este enfoque asegura una representación equitativa de ambos géneros en los datos de entrenamiento y prueba.
 
-Se han empleado las características obtenidas de la selección.
+A continuación, empleando las características obtenidas de la selección, trataremos de clasificar utilizando los modelos sugeridos.
 
 ```{r}
 set.seed(123) # Fijar la semilla para reproducibilidad
@@ -1163,8 +1163,6 @@ train <- bind_rows(
 
 test <- anti_join(df_etiquetado, train, by = "id_audio")
 ```
-
-Ahora separamos las etiquetas del conjunto de características de train
 
 ```{r}
 # Mezclar aleatoriamente los datos de train y test (es un shuffle )
@@ -1274,4 +1272,4 @@ svm_predictions <- predict(svm_model, X_test)
 cm_svm <- confusionMatrix(as.factor(svm_predictions), as.factor(y_test))
 ```
 
-Obteniendo un Accuracy de `r cm_rf$overall["Accuracy"]` para el RF y Accuracy de `r cm_svm$overall["Accuracy"]` para el SVM. 
+Teniendo un Accuracy de `r cm_rf$overall["Accuracy"]` para el RF y de `r cm_svm$overall["Accuracy"]` para el SVM. 

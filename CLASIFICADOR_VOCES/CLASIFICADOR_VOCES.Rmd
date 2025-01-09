@@ -36,7 +36,7 @@ keywords:
   - Clasificación
   - Aprendizaje Máquina
   - Análisis de Señales
-  - Identificación voces
+  - Identificación de voces
 date: "`r Sys.Date()`"
 linenumbers: false
 numbersections: true
@@ -63,22 +63,23 @@ knitr::opts_chunk$set(warning=FALSE,
                       echo = FALSE)
 
 # Cargar librerías
-librerias <- c("tuneR",      # Lectura de archivos WAV
-               "seewave",    # Manipulación mediante wavelets
-               "plotly",     # Gráficos 3D
-               "phonTools",  # Libreria para obtención de Formants
-               "dplyr",      # Manipulacion de datos
-               "kableExtra", # Kable para ajutar las tablas
-               "wavelets",   # Libreria para manipulación con Wavelets
-               "signal",     # Funciones de procesado de señales
-               "ggplot2",    # Librería de gráficos
-               "ggpubr",     # Mostrar múltiples ggplots juntos
-               "lomb",
-               "purrr",
-               "caret",
-               "randomForest",
-               "e1071"
+librerias <- c("tuneR",        # Lectura de archivos WAV
+               "seewave",      # Manipulación mediante wavelets
+               "plotly",       # Gráficos 3D
+               "phonTools",    # Libreria para obtención de Formants
+               "dplyr",        # Manipulacion de datos
+               "kableExtra",   # Kable para ajutar las tablas
+               "wavelets",     # Libreria para manipulación con Wavelets
+               "signal",       # Funciones de procesado de señales
+               "ggplot2",      # Librería de gráficos
+               "ggpubr",       # Mostrar múltiples ggplots juntos
+               "lomb",         # Análisis espectral de series temporales
+               "purrr",        # Programación funcional y manejo de listas
+               "caret",        # Creación y evaluación de modelos predictivos
+               "randomForest", # Bosques aleatorios para clasificación y regresión
+               "e1071"         # SVM, clústeres y otras herramientas de machine learning
               )
+
 pacman::p_load(char = librerias, warn.conflicts=FALSE)
 
 # Cargar utilidades
@@ -103,7 +104,7 @@ audios_norm <- normalizacion(audios_lim)
 df_caract <- data.frame("id_audio" = meta_audios$id_audio)
 ```
 
-# Característica de la voz
+# Características de la voz
 
 En el desarrollo de este apartado probaremos distintas técnicas de extracción de características.
 
@@ -181,7 +182,7 @@ p_coe4 <- ggplot(data = df_analisis_mel,
 ggarrange(p_coe1, p_coe2, p_coe3, p_coe4, ncol = 2, nrow = 2)
 ```
 
-Empezando por el primer coeficiente podemos observar que el género masculino tiene los valores más altos y distribuidos. Para los coeficientes que van del segundo al sexto, podemos ver que los valores femeninos van ganando relevancia según aumentamos el coeficiente, es decir, según captamos mayores frecuencias. Finalmente para los últimos coeficientes vemos que pasa evoluciona hacia lo contrario que en el primer coeficiente. Los valores para los hombres son claramente inferiores y menos distribuidos.
+Empezando por el primer coeficiente podemos observar que el género masculino tiene los valores más altos y distribuidos. Para los coeficientes que van del segundo al sexto, podemos ver que los valores femeninos van ganando relevancia según aumentamos el coeficiente, es decir, según captamos mayores frecuencias. Finalmente para los últimos coeficientes vemos los valores para los hombres son claramente inferiores y menos distribuidos.
 
 ## Frecuencia fundamental
 
@@ -223,11 +224,11 @@ df <- df_caract %>%
   left_join(meta_audios, by = "id_audio")
 
 # Crear el gráfico combinado
-ggplot(df, aes(x = locutor, y = FO_carac, color = genero)) +
+p_f0_1 <- ggplot(df, aes(x = locutor, y = FO_carac, color = genero)) +
   geom_point(size = 3, alpha = 0.8) +  # Puntos
   geom_boxplot(aes(group = genero), alpha = 0.3, outlier.shape = NA) +  # Boxplots por género
   labs(
-    title = "Frecuencia Fundamental (F0) por Locutor y Género",
+    title = "Frecuencia Fundamental (F0)",
     x = "Locutor",
     y = "Frecuencia Fundamental (F0)",
     color = "Género"
@@ -236,19 +237,20 @@ ggplot(df, aes(x = locutor, y = FO_carac, color = genero)) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))  
 
-```
-
-```{r}
-ggplot(df, aes(x = FO_carac, fill = genero)) +
+p_f0_2 <- ggplot(df, aes(x = FO_carac, fill = genero)) +
   geom_density(alpha = 0.5) +  # Curvas de densidad
   labs(
-    title = "Distribución de F0 por Género",
+    title = "Distribución de F0",
     x = "Frecuencia Fundamental (F0)",
     y = "Densidad",
     fill = "Género"
   ) +
   theme_minimal()
 
+
+ggarrange(p_f0_1,
+          p_f0_2,
+          ncol = 2)
 ```
 Nuestro caso se muestra paradójico con respecto a esta característica, ya que, aunque las mujeres presentan frecuencias fundamentales altas y similares, los hombres se distribuyen en un rango más amplio, desde frecuencias bajas hasta las más altas. Este comportamiento no es el esperable teóricamente, pues se ha demostrado que las mujeres tienen una frecuencia fundamental superior a la de los hombres, lo que en nuestro caso no ocurre.
 
@@ -332,7 +334,7 @@ df_for <- carga_formants("../Data/formants_as.txt", audios)
 df_caract <- cbind(df_caract, df_for[-1])
 ```
 
-Si analizamos los valores de los formantes visualizamos en parte lo esperado. Para el primer formante tenemos frecuencias más altas en las mujeres. Según pasamos a los siguientes a los siguientes formantes notamos luna evolución donde las frecuencias en los hombres van tomando más protagonismo.
+Si analizamos los valores de los formantes visualizamos en parte lo esperado. Para el primer formante tenemos frecuencias más altas en las mujeres. Según pasamos a los siguientes a los siguientes formantes notamos una evolución donde las frecuencias en los hombres van tomando más protagonismo.
 
 ```{r analisis_for_2}
 df_analisis_for <- df_caract %>%
@@ -379,14 +381,14 @@ id <- 1
 for (audio in audios) {
   # Acceso directo a los canales izquierdo y derecho
   audio_iz <- audio@left
-  audio_de <- audio@right
+  #audio_de <- audio@right
   
-  # Calcular FO para cada canal
   ZCR_iz <- ZCR_FUN(audio_iz, audio@samp.rate)
-  ZCR_de <-ZCR_FUN(audio_de, audio@samp.rate)
+  #ZCR_de <-ZCR_FUN(audio_de, audio@samp.rate)
   
   # Promediar los valores calculados
-  ZCR_carac[id] <- mean(c(ZCR_iz, ZCR_de))
+  #ZCR_carac[id] <- mean(c(ZCR_iz, ZCR_de))
+  ZCR_carac[id] <- ZCR_iz
   
   # Incrementar el contador
   id <- id + 1
@@ -401,29 +403,31 @@ df <- df_caract %>%
   left_join(meta_audios, by = "id_audio")
 
 # Crear el gráfico combinado
-ggplot(df, aes(x = locutor, y = ZCR_carac, color = genero)) +
+p_zcr_1 <- ggplot(df, aes(x = locutor, y = ZCR_carac, color = genero)) +
   geom_point(size = 3, alpha = 0.8) +  # Puntos
   geom_boxplot(aes(group = genero), alpha = 0.3, outlier.shape = NA) +  # Boxplots por género
   labs(
-    title = "Zero Crossing rate (ZCR) por Locutor y Género",
+    title = "Zero Crossing rate (ZCR)",
     x = "Locutor",
     y = "Zero Crossing rate (ZCR)",
     color = "Género"
   )  +  
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
-```
 
-```{r}
-ggplot(df, aes(x = ZCR_carac, fill = genero)) +
+p_zcr_2 <- ggplot(df, aes(x = ZCR_carac, fill = genero)) +
   geom_density(alpha = 0.5) +  # Curvas de densidad
   labs(
-    title = "Distribución de ZCR por Género",
+    title = "Distribución de ZCR",
     x = "Zero Crossing Rate (ZCR)",
     y = "Densidad",
     fill = "Género"
   ) +
   theme_minimal()
+
+ggarrange(p_zcr_1,
+          p_zcr_2,
+          ncol = 2)
 ```
 
 En esta característica se observa un comportamiento más acorde con lo esperado teóricamente. El Zero Crossing Rate (ZCR) tiende a ser mayor en las mujeres que en los hombres, lo cual es consistente con las propiedades de las señales de voz. Este patrón se aprecia tanto en la distribución general del ZCR por género como en los locutores individuales, donde, por norma general, las mujeres presentan valores de ZCR superiores. Este resultado refleja que el ZCR es una característica adecuada para diferenciar géneros en nuestro caso de estudio.
@@ -454,9 +458,7 @@ lpcc_results <- lapply(audios, function(wav) {
   signal <- as.vector(wav@left)
   calc_lpcc(signal, frame_size, overlap, order)
 })
-```
 
-```{r}
 df_list <- lapply(1:length(lpcc_results), function(i) {
   # Para cada audio, expandimos cada ventana y sus coeficientes LPCC
   audio_lpcc <- lpcc_results[[i]]
@@ -570,36 +572,34 @@ df_caract <- cbind(df_caract, ste_c)
 df <- df_caract %>%
   left_join(meta_audios, by = "id_audio")
 
-```
-
-```{r}
-ggplot(df, aes(x = locutor, y = ste_c, color = genero)) +
+p_ste_1 <- ggplot(df, aes(x = locutor, y = ste_c, color = genero)) +
   geom_point(size = 3, alpha = 0.8) +  # Puntos
   geom_boxplot(aes(group = genero), alpha = 0.3) +  # Boxplots por género
   labs(
-    title = "Short-Time Energy (STE) por Locutor y Género",
+    title = "Short-Time Energy (STE)",
     x = "Locutor",
     y = "Short-Time Energy (STE)",
     color = "Género"
   ) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
-```
 
-Observamos que las locutoras tienen una mayor variabilidad en la STE en comparación con los locutores hombres. Esto podría deberse a características propias de las voces femeninas, como el rango de modulación, que es más amplio. Además, las locutoras presentan valores de STE más altos en general. Esto se refleja en una mediana de aproximadamente 0.10, mientras que en los locutores hombres la mediana se encuentra alrededor de 0.07. Esto puede tener relación con la frecuencia fundamental. Las voces femeninas suelen tener una frecuencia fundamental más alta que las voces masculinas. Dado que la STE mide la energía de la señal acústica, una frecuencia fundamental más alta puede generar más energía en las frecuencias superiores, lo que puede reflejarse en un valor más alto de STE.
-
-
-```{r}
-ggplot(df, aes(x = ste_c, fill = genero)) +
+p_ste_2 <- ggplot(df, aes(x = ste_c, fill = genero)) +
   geom_density(alpha = 0.5) +  # Curvas de densidad
   labs(
-    title = "Distribución de STE por Género",
+    title = "Distribución de STE",
     x = "Short-Time Energy (STE)",
     y = "Densidad",
     fill = "Género"
   ) +
   theme_minimal()
+
+ggarrange(p_ste_1,
+          p_ste_2,
+          ncol = 2)
 ```
+
+Observamos que las locutoras tienen una mayor variabilidad en la STE en comparación con los locutores hombres. Esto podría deberse a características propias de las voces femeninas, como el rango de modulación, que es más amplio. Además, las locutoras presentan valores de STE más altos en general. Esto se refleja en una mediana de aproximadamente 0.10, mientras que en los locutores hombres la mediana se encuentra alrededor de 0.07. Esto puede tener relación con la frecuencia fundamental. Las voces femeninas suelen tener una frecuencia fundamental más alta que las voces masculinas. Dado que la STE mide la energía de la señal acústica, una frecuencia fundamental más alta puede generar más energía en las frecuencias superiores, lo que puede reflejarse en un valor más alto de STE.
 
 Las curvas de densidad muestran que las voces femeninas tienen una distribución más amplia y desplazada hacia valores más altos de STE, lo que confirma lo que hemos visto en el boxplot. Los locutores hombres, por otro lado, presentan una distribución más concentrada y con menor dispersión. Aunque hay diferencias entre géneros, también se observa cierto solapamiento en las densidades de STE. Esto indica que, si bien hay tendencias generales, la STE por sí sola puede no ser completamente discriminativa entre géneros en todos los casos.
 
@@ -609,7 +609,7 @@ En conclusión, los resultados sugieren que la Short-Time Energy es una métrica
 
 El PGM es un método que utiliza una estructura a largo plazo para representar las características, llamadas Ventanas de Tiempo de Integración (ITW). En cada ITW, se tiene un vector de medias y un vector de varianzas.
 
-Para la implementación de este método, primero calculamos el MFSC (Mel Frequency Spectral Coefficient). Es similar al MFCC obtenido anteriormente pero sin la parte de DCT (Discrete Cosine Transform). Una vez calculado, se obtiene una matriz $N \times T$ donde $T$ se refiere al número de vectores espectrales contenidos en una ITW (Ventana de Tiempo de Integración) y N al número de ventanas ITW. A continuación se modela un conjunto de $T$ vectores MFSC consecutivos mediante un modelo gaussiano. Es decir, $N \times T$ de MFSC serán modelados por N gaussianas. Al calcular la matriz de covarianza, solo tomamos el índice diagonal de la matriz de covarianza para generar el vector de varianza. Finalmente, las características del PGM son la concatenación de la media y la varianza normalizadas por sus respectivos máximos y mínimos. Para obtener una característica de media y otra de varianza por audio, hemos calculado la media de cada vector.
+Para la implementación de este método, primero calculamos el MFSC (Mel Frequency Spectral Coefficient). Es similar al MFCC obtenido anteriormente pero sin la parte de DCT (Discrete Cosine Transform). Una vez calculado, se obtiene una matriz $N \times T$ donde $T$ se refiere al número de vectores espectrales contenidos en una ITW (Ventana de Tiempo de Integración) y $N$ al número de ventanas ITW. A continuación se modela un conjunto de $T$ vectores MFSC consecutivos mediante un modelo gaussiano. Es decir, $N \times T$ de MFSC serán modelados por $N$ gaussianas. Al calcular la matriz de covarianza, solo tomamos la diagonal de la matriz de covarianza para generar el vector de varianza. Finalmente, las características del PGM son la concatenación de la media y la varianza normalizadas por sus respectivos máximos y mínimos. Para obtener una característica de media y otra de varianza por audio, hemos calculado la media de cada vector.
 
 ```{r extraccion_caract_PGM, message=FALSE, warning=FALSE}
 # PGM
@@ -713,9 +713,6 @@ PS_caract <- data.frame(
 
 # Agregar la característica PS al marco de datos
 df_caract <- cbind(df_caract, PS_caract)
-```
-
-```{r}
 df <- df_caract %>%
   left_join(df, by = "id_audio") 
 ```
@@ -750,9 +747,7 @@ Se puede observar una mayor concentración de valores más bajos de potencia má
 
 La distribución de la frecuencia de máxima potencia en el espectro, a priori, parece un poco mas determinante para la tarea de clasificación. En las voces femeninas hay una mayor densidad en frecuencias medias/altas (alrededor de 190 Hz) mientras que en las voces masculinas pueden diferenciarse dos grupos de frecuencias (bajas y altas), por lo que no parecen estar tan concentradas alrededor de una única frecuencia media.
 
-
-
-```{r}
+```{r, include=FALSE}
 # Crear la nube de puntos
 ggplot(df, aes(x = ps_frec, y = ps_pow, color = genero, shape = genero)) +
   geom_point(size = 3) +
@@ -765,14 +760,6 @@ ggplot(df, aes(x = ps_frec, y = ps_pow, color = genero, shape = genero)) +
   ) +
   theme_minimal()
 ```
-
-
-
-En la nube de puntos se puede apreciar los dos grupos de voces masculinas que se han comentado anteriormente. Las que se encuentran en el rango de bajas frecuencias se discriminan perfectamente visualmente, pero luego hay otros audios que se mezclan con los de frecuencias medias/altas de las voces femeninas. Como se puede observar, algunas voces femeninas parecen ser las que tienen mayor potencia entre todos los audios.
-
-
-El outlier situado a la derecha del eje de frecuencias corresponde al audio *f_06_05* y se podría asociar a ruido, en este caso, al portazo de una puerta.
-
 
 ## Harmonic-to-Noise Ratio (HNR)
 
@@ -822,7 +809,7 @@ p_hnr2 <- ggplot(df, aes(x = locutor, y = HNR_carac, color = genero)) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-ggarrange(p_hnr1, p_hnr2, ncol=2)
+ggarrange(p_hnr2, p_hnr1, ncol=2)
 ```
 
 El gráfico de distribución de densidades muestra una clara diferencia de tendencia entre géneros; mientras que las voces masculinas suelen encontrarse más cerca de la media cercana a 62, el HNR de las voces femeninas está distribuido de forma más uniforme en el rango de valores. De esta forma, valores de HNR cercanos a los extremos podrían indicar mayor probabilidad de que la voz grabada sea femenina y valores cercanos a la media lo contrario. No obstante, esta diferencia de tendencias según el género no es muy evidente o conlcuyente, por lo que este indicador por si mismo puede que no sea suficiente pero potencialmente puede aportar información relevante a un algoritmo de clasificación.
@@ -849,11 +836,8 @@ for (audio in audios) {
   id <- id + 1
 }
 
-# Agregar la característica HNR al marco de datos
+# Agregar la característica CE al marco de datos
 df_caract <- cbind(df_caract, CE_carac)
-```
-
-```{r}
 df <- df_caract %>%
   left_join(meta_audios, by = "id_audio")
 
@@ -879,10 +863,10 @@ p_ce2 <- ggplot(df, aes(x = locutor, y = CE_carac, color = genero)) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-ggarrange(p_ce1, p_ce2, ncol=2)
+ggarrange(p_ce2, p_ce1, ncol=2)
 ```
 
-Notamos un comportamiento muy semejante al de la característica Harmonic-to-Noise Ratio (HNR): los CE de las voces masculinas se encuentran mucho más concentrados en torno a una media cercana a 175 mientras que las voces femeninas se reparten de forma más homogénea a lo largo del rango total 100-260, teniendo dos máximos locales en 120 y 230.
+Notamos un comportamiento muy semejante al de la característica Harmonic-to-Noise Ratio (HNR): los CE de las voces masculinas se encuentran mucho más concentradas en torno a una media cercana a 175 mientras que las voces femeninas se reparten de forma más homogénea a lo largo del rango total 100-260, teniendo dos máximos locales en 120 y 230.
 
 En cuánto al análisis por locutor, podemos observar considerable variabilidad de centroides espectrales dependiendo del audio (salvo en el caso del locutor 01), lo que puede dificultar el uso de esta medida para la identificación concreta del locutor. Sin embargo, al igual que en características anteriores la diferencia de distribución de densidad entre géneros puede aportar información relevante a la hora de clasificarlos.
 
@@ -894,7 +878,7 @@ Para capturar esta variabilidad en primer lugar diferenciamos la señal y normal
 
 ```{r extraccion_caract_SH}
 # SH
-# Inicializar el vector para la característica ZCR
+# Inicializar el vector para la característica SH
 SH_carac <- rep(0.0, length(audios))
 
 # ID para iterar sobre los audios
@@ -905,12 +889,12 @@ for (audio in audios) {
   audio_iz <- audio@left
   #audio_de <- audio@right
   
-  # Calcular FO para cada canal
   SH_iz <- SH(audio_iz)
   #SH_de <-SH(audio_de)
   
   # Promediar los valores calculados
   SH_carac[id] <- SH_iz
+  
   # Incrementar el contador
   id <- id + 1
 }
@@ -924,7 +908,6 @@ for (audio2 in audios_norm) {
   audio_iz <- audio2@left
   #audio_de <- audio2@right
   
-  # Calcular FO para cada canal
   SH_iz <- SH(audio_iz)
   #SH_de <-SH(audio_de)
   
@@ -934,7 +917,7 @@ for (audio2 in audios_norm) {
   id <- id + 1
 }
 
-# Agregar la característica ZCR al marco de datos
+# Agregar la característica SH al marco de datos
 df_caract <- cbind(df_caract, SH_carac)
 df_caract <- cbind(df_caract, SH_carac_norm)
 
@@ -966,7 +949,7 @@ p_s2 <- ggplot(df, aes(x = SH_carac_norm, fill = genero)) +
 ggarrange(p_s1, p_s2, nrow=2)
 ```
 
-Podemos observar en el grafico de densidad diferencias en la distribución por generlo. La distribucion de SH para mujeres parece estar mas concentrados, tanto en los datos que se han normalizado y los que no, mientras que la distribucion para hombres parece estar más dispersa. Estas diferencias podrían reflejar características fisiológicas de las cuerdas vocales.
+Podemos observar en el grafico de densidad diferencias en la distribución por genero. La distribucion de SH para mujeres parece estar mas concentrada, tanto en los datos que se han normalizado y los que no, mientras que la distribucion para hombres parece estar más dispersa. Estas diferencias podrían reflejar características fisiológicas de las cuerdas vocales.
 
 Aunque se observan diferencias claras entre géneros en términos de rango y dispersión de SH, también es evidente que hay un solapamiento y variabilidad entre locutores del mismo género.
 
@@ -979,17 +962,11 @@ El Perceptual Linear Prediction (PLP) es una técnica de extracción de caracter
 Para obtener los coeficientes LPCC seguiremos los siguientes pasos:
 
 1. Calculamos el espectrograma utilizando una ventana Hamming.
-
 2. Extraer la densidad espectral de potencia (PSD).
-
 3. Banco de filtros Bark: Filtramos la señal mediante un banco de filtros basado en las bandas críticas percibidas por el oído humano.
-
 4. Aplicamos un filtro de pre-énfasis para ajustar las amplitudes de frecuencias para reflejar cómo el oído humano percibe las distintas intensidades a diferentes frecuencias.
-
 5. Aplicamos una transformación para simular la potencia percibida por el oído humano. Cada elemento espectral se eleva a la potencia de 0.33. Este enfoque se utiliza en lugar de una transformación logarítmica porque el logaritmo tiende a comprimir de forma más agresiva los valores altos, mientras que la raíz cúbica proporciona una representación más fiel de la percepción auditiva, especialmente en señales con variaciones amplias de intensidad.
-
 6. Cálculo de coeficientes LPC: A partir de cada segmento de la señal(usaremos la función lpc)
-
 7. Calcular los coeficientes cepstrales (LPCCs): Transformamos los coeficientes LPC en coeficientes cepstrales LPCCS.
 
 Por lo tanto, la dimensión de salida de nuestras características dependerá del orden seleccionado para los modelos lineales, así como del tamaño de la ventana y el solapamiento utilizado. En nuestro caso, siguiendo recomendaciones generales, obtenemos una salida aproximadamente de 14X6,247.  Para compactar aún más la información, calcularemos la media de cada coeficiente, lo que nos dará un vector de longitud 14.
@@ -1046,27 +1023,33 @@ df <- df_caract %>%
   left_join(meta_audios, by = "id_audio")
 ```
 
-```{r, include=FALSE}
-names_plp <- paste0("PLP_c", 2:14)
+```{r}
+# Mostramos primeros 4
+names_plp <- paste0("PLP_c", 2:5)
+graficas <- list()
+id <- 1
 
 for (i in names_plp) {
-  print(
-    ggplot(df, aes(x = locutor, y = .data[[i]], color = genero)) +
-      geom_point(size = 3, alpha = 0.8) +  # Puntos
-      geom_boxplot(aes(group = genero), alpha = 0.3, outlier.shape = NA) +  # Boxplots por género
+  graficas[[id]] <- ggplot(df, aes(x = locutor, y = .data[[i]], color = genero)) +
+      # Puntos
+      geom_point(size = 3, alpha = 0.8) +
+      # Boxplots por género
+      geom_boxplot(aes(group = genero), alpha = 0.3, outlier.shape = NA) +
       labs(
-        title = paste("Distribución de", i, "por Locutor y Género"),
+        title = paste("Distribución de", i),
         x = "Locutor",
         y = i,
         color = "Género"
       ) +  
       theme_minimal() +
       theme(axis.text.x = element_text(angle = 45, hjust = 1))
-  )
+  id <- id + 1
 }
-```
 
-# WIP
+ggarrange(ggarrange(graficas[[1]], graficas[[2]], nrow=2),
+          ggarrange(graficas[[3]], graficas[[4]], nrow=2),
+          ncol = 2)
+```
 
 Las distribuciones muestran una clara diferencia entre locutores, aunque no se observa una distinción significativa entre géneros al analizar un solo coeficiente en particular. Esto sugiere que el coeficiente individual podría ser útil para distinguir entre locutores. Sin embargo, al considerar los 14 coeficientes en conjunto, es probable que se puedan obtener mejores resultados para la clasificación por género.
 
@@ -1095,7 +1078,6 @@ Y_sel <- as.factor(df_etiquetado$genero)
 
 # 1. Qué relevancia tienen las características en el RFC?
 library(randomForest)
-
 
 # Entrenar el modelo de Random Forest
 set.seed(123) # Fijar la semilla para reproducibilidad
@@ -1157,9 +1139,13 @@ De las características calculadas previamente vamos a reducirlas a la mitad. Pa
 
 El primer paso antes de hacer ningún algoritmo de ML es añadir a nuestro df de características las posibles etiquetas de estos algoritmos. En este caso las etiquetas se encuentran en el df meta_audios, siendo estas el locutor y el género.
 
+De los algoritmos empleados hemos decidido utilizar un modelo más simple, que en este caso es el Random Forest, y uno más complejo; el SVM. Para evaluar como se compartan a partir de las características extraídas.
+
 ## Métodos empleando como etiqueta el género 
 
 Primeramente, preparamos los datos separándolos en conjuntos de train y test. Es fundamental agrupar por género para garantizar un balance adecuado, evitando que un conjunto (por ejemplo, train) tenga una mayoría desproporcionada de un género, como "M", y el otro conjunto, como test, tenga una mayoría de "F". Este enfoque asegura una representación equitativa de ambos géneros en los datos de entrenamiento y prueba.
+
+Se han empleado las características obtenidas de la selección.
 
 ```{r}
 set.seed(123) # Fijar la semilla para reproducibilidad
@@ -1200,6 +1186,8 @@ y_test <- test$genero
 
 ### Random forest
 
+Para el cual obtenemos la siguiente matriz de confusión:
+
 ```{r}
 library(randomForest)
 # Entrenar el modelo de Random Forest
@@ -1208,10 +1196,13 @@ rf_model <- randomForest(x = X_train,
 
 # Evaluar el modelo en el conjunto de test
 rf_predictions <- predict(rf_model, X_test)
-confusionMatrix(as.factor(rf_predictions), as.factor(y_test))
+cm <- confusionMatrix(as.factor(rf_predictions), as.factor(y_test))
+print(cm$table)
 ```
 
 ### SVM
+
+Para el cual obtenemos la siguiente matriz de confusión:
 
 ```{r}
 # Entrenar el modelo SVM
@@ -1219,13 +1210,20 @@ svm_model <- svm(x = X_train, y = as.factor(y_train), kernel = "linear")
 
 # Evaluar el modelo en el conjunto de test
 svm_predictions <- predict(svm_model, X_test)
-confusionMatrix(as.factor(svm_predictions), as.factor(y_test))
+cm <- confusionMatrix(as.factor(svm_predictions), as.factor(y_test))
+print(cm$table)
 ```
 
+### Conclusiones
 
-## Locutor
+A partir de las matrices de confusión podemos observar lo siguiente:
 
-Realizamos el mismo proceso anterior para dividir el conjunto de entrenamiento de forma equitativa entre los locutores.
+1. Obtenemos un 100% de acierto con las características escogidas.
+2. No es necesario emplear un modelo complejo para la clasificación por género. Ya que los resultados del Random Forest son los mismo que los del SVM.
+
+## Métodos empleando como etiqueta el locutor 
+
+Realizamos el mismo proceso anterior para dividir el conjunto de entrenamiento de forma equitativa entre los locutores. Esta vez, vamos a emplear todas las características. De los resultados mencionar que ya no obtenemos resultados perfectos. Obteniendo peores con el Random Forest que utilizando el SVM.
 
 ```{r}
 set.seed(123) # Fijar la semilla para reproducibilidad
@@ -1255,10 +1253,7 @@ y_train <- train$locutor
 
 X_test <- test %>% select(-genero, -id_audio, -locutor)
 y_test <- test$locutor
-
 ```
-
-### Random forest
 
 ```{r}
 # Entrenar el modelo de Random Forest
@@ -1267,16 +1262,14 @@ rf_model <- randomForest(x = X_train,
 
 # Evaluar el modelo en el conjunto de test
 rf_predictions <- predict(rf_model, X_test)
-confusionMatrix(as.factor(rf_predictions), as.factor(y_test))
-```
+cm_rf <- confusionMatrix(as.factor(rf_predictions), as.factor(y_test))
 
-### SVM
-
-```{r}
 # Entrenar el modelo SVM
 svm_model <- svm(x = X_train, y = as.factor(y_train), kernel = "linear")
 
 # Evaluar el modelo en el conjunto de test
 svm_predictions <- predict(svm_model, X_test)
-confusionMatrix(as.factor(svm_predictions), as.factor(y_test))
+cm_svm <- confusionMatrix(as.factor(svm_predictions), as.factor(y_test))
 ```
+
+Obteniendo un Accuracy de `r cm_rf$overall["Accuracy"]` para el RF y Accuracy de `r cm_svm$overall["Accuracy"]` para el SVM. 

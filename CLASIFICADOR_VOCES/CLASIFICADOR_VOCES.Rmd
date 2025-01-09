@@ -44,6 +44,8 @@ output:
   rticles::elsevier_article:
     keep_tex: true
     citation_package: natbib
+header-includes:
+  - \usepackage[margin=0.98in]{geometry}
 ---
 
 # Captación de audio
@@ -368,7 +370,7 @@ ggarrange(p_for1,
 
 La tasa de cruces por cero (ZCR, por sus siglas en inglés) mide cuántas veces la señal cruza el eje cero en un periodo de tiempo determinado. Es mayor en voces femeninas debido a su mayor frecuencia fundamental, lo que evidencia una estrecha relación entre ambas características. Este parámetro se utiliza frecuentemente en el análisis de señales para distinguir patrones relacionados con la tonalidad y la estructura armónica de la voz.
 
-Para su cálculo, se emplea la función zcr en R, utilizando ventanas con un solapamiento del 50%. Posteriormente, se realiza el promedio de los valores obtenidos en cada ventana para obtener un único valor representativo por señal, similar al enfoque utilizado para calcular la frecuencia fundamental. Esta media permite consolidar la información de toda la señal en un solo parámetro útil para el análisis.
+Para su cálculo, se emplea la función zcr en R, utilizando ventanas de 2s con un solapamiento del 50%. Posteriormente, se realiza el promedio de los valores obtenidos en cada ventana para obtener un único valor representativo por señal, similar al enfoque utilizado para calcular la frecuencia fundamental. Esta media permite consolidar la información de toda la señal en un solo parámetro útil para el análisis.
 
 ```{r}
 # ZCR

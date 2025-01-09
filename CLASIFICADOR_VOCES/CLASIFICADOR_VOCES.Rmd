@@ -186,9 +186,9 @@ Empezando por el primer coeficiente podemos observar que el género masculino ti
 
 ## Frecuencia fundamental
 
-La frecuencia fundamental es una característica ampliamente utilizada en el análisis de secuencias de audio, especialmente para diferenciar géneros y hablantes. Esto se debe a que representa el tono base de la voz, el cual tiende a ser más bajo en hombres que en mujeres. Su variabilidad entre individuos también lo convierte en un indicador relevante para la identificación de locutores. Por su relación directa con la fisiología vocal, esta métrica es clave en estudios relacionados con la prosodia y la fonética.
+La frecuencia fundamental es una característica ampliamente utilizada en el análisis de secuencias de audio para diferenciar géneros y hablantes, ya que representa el tono base de la voz, más bajo en hombres que en mujeres. Su variabilidad entre individuos la convierte también en un indicador relevante para la identificación de locutores.
 
-Su cálculo se basa en dividir la señal en ventanas (de 2 segundos en este caso) y realizar la Transformada de Fourier en cada una. La frecuencia fundamental en cada ventana se determina como la frecuencia con la máxima amplitud en el espectro resultante, considerando solo la mitad positiva del espectro. Para obtener un único valor representativo de toda la señal, se calcula la media ponderada de estas frecuencias, asignando un peso mayor a las primeras ventanas y eliminando la contribución de los últimos 4 segundos, ya que suelen ser menos relevantes debido a que el locutor ya ha terminado de hablar en la mayoría de los casos.
+Para calcularla, se divide la señal en ventanas de 2 segundos y se realiza la Transformada de Fourier en cada una. La frecuencia fundamental se identifica como aquella con la máxima amplitud en la mitad positiva del espectro. Finalmente, se calcula una media ponderada de estas frecuencias, asignando mayor peso a las primeras ventanas y eliminando los últimos 4 segundos, que suelen ser menos relevantes debido a que el locutor generalmente ya ha terminado de hablar.
 
 ```{r}
 # FO
@@ -368,7 +368,7 @@ ggarrange(p_for1,
 
 La tasa de cruces por cero (ZCR, por sus siglas en inglés) mide cuántas veces la señal cruza el eje cero en un periodo de tiempo determinado. Es mayor en voces femeninas debido a su mayor frecuencia fundamental, lo que evidencia una estrecha relación entre ambas características. Este parámetro se utiliza frecuentemente en el análisis de señales para distinguir patrones relacionados con la tonalidad y la estructura armónica de la voz.
 
-Para su cálculo, se emplea la función zcr en R, utilizando ventanas con un solapamiento del 50%. Posteriormente, se realiza el promedio de los valores obtenidos en cada ventana para obtener un único valor representativo por señal, similar al enfoque utilizado para calcular la frecuencia fundamental. Esta media permite consolidar la información de toda la señal en un solo parámetro útil para el análisis.
+Para su cálculo, se emplea la función zcr en R, utilizando ventanasde 2s con un solapamiento del 50%. Posteriormente, se realiza el promedio de los valores obtenidos en cada ventana para obtener un único valor representativo por señal, similar al enfoque utilizado para calcular la frecuencia fundamental. Esta media permite consolidar la información de toda la señal en un solo parámetro útil para el análisis.
 
 ```{r}
 # ZCR
